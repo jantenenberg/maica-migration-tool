@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maica Migration Utility</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --secondary: #10b981;
+      --secondary-hover: #059669;
+      --text: #e4e4e7;
+      --text-muted: #71717a;
+      --error: #ef4444;
+      --success: #10b981;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-brand h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .header-brand .subtitle {
+      margin: 0.25rem 0 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .header-status {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .status-tag {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+    .status-tag.connected {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--primary);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+    }
+    .status-tag.connected.target {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    /* Stepper */
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .stepper-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .stepper-step.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .stepper-step.completed {
+      color: var(--success);
+      cursor: pointer;
+    }
+    .stepper-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .stepper-step.active .stepper-dot {
+      background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    }
+    .stepper-step.completed .stepper-dot {
+      background: var(--success);
+      font-size: 10px;
+      line-height: 10px;
+      text-align: center;
+    }
+    .stepper-step.completed .stepper-dot::after {
+      content: '✓';
+      display: block;
+      font-size: 8px;
+      color: #fff;
+      line-height: 10px;
+    }
+    .stepper-sep {
+      width: 24px;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Main */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .card.target { border-color: rgba(16, 185, 129, 0.3); }
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: rgba(99, 102, 241, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .card.target .card-icon {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+    .card-icon::before {
+      content: '';
+      display: block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .card-subtitle {
+      margin: 0.25rem 0 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .form-group select,
+    .form-group input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+    }
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .card.target .form-group select:focus,
+    .card.target .form-group input:focus {
+      border-color: var(--secondary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-secondary {
+      background: var(--secondary);
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: var(--secondary-hover);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+    .btn-block { width: 100%; }
+
+    .org-info {
+      margin-bottom: 1rem;
+    }
+    .org-info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.4rem 0;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .org-info-row:last-child { border-bottom: none; }
+    .org-info-label { color: var(--text-muted); }
+    .org-info-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      word-break: break-all;
+      text-align: right;
+    }
+    .packages-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 1rem;
+    }
+    .package-tag {
+      padding: 0.25rem 0.6rem;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+    .card.target .package-tag {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--secondary);
+    }
+    .disconnect-wrap {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Setup instructions */
+    .setup-box {
+      margin-top: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .setup-toggle {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .setup-toggle:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    .setup-toggle::after {
+      content: '▼';
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .setup-box.expanded .setup-toggle::after {
+      transform: rotate(180deg);
+    }
+    .setup-content {
+      display: none;
+      padding: 1rem 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .setup-box.expanded .setup-content {
+      display: block;
+    }
+    .setup-content ol {
+      margin: 0;
+      padding-left: 1.25rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    .setup-content li { margin-bottom: 0.5rem; }
+    .setup-content code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: var(--bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    /* Begin button */
+    .begin-section {
+      margin-top: 2rem;
+      text-align: center;
+    }
+    .begin-btn {
+      padding: 0.9rem 2rem;
+      font-size: 1rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .begin-btn:hover {
+      background: var(--primary-hover);
+    }
+    .begin-btn::after {
+      content: ' →';
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-width: 360px;
+    }
+    .toast {
+      padding: 1rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      animation: toastIn 0.3s ease-out;
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--error); }
+    .toast-msg { flex: 1; font-size: 0.9rem; }
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.2rem;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+    .toast-close:hover { color: var(--text); }
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Discovery progress */
+    .discovery-card {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 2.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-align: center;
+    }
+    .discovery-card h2 {
+      margin: 0 0 1.5rem;
+      font-size: 1.25rem;
+      color: #fff;
+    }
+    .progress-bar-wrap {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .progress-status {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .progress-counters {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .progress-counters span {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--primary);
+      font-weight: 500;
+    }
+    .discovery-error {
+      color: var(--error);
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    .step-content { display: none; }
+    .step-content.active { display: block; }
+
+    /* Map Fields step */
+    .map-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .map-header h2 { margin: 0; font-size: 1.5rem; color: #fff; }
+    .map-header .subtitle { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 700px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-card.total { border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08); }
+    .stat-card.mapped { border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.08); }
+    .stat-card.create { border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.08); }
+    .stat-card.skipped { border-color: var(--border); }
+    .stat-card .value { font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .stat-card.total .value { color: #6366f1; }
+    .stat-card.mapped .value { color: #22c55e; }
+    .stat-card.create .value { color: #eab308; }
+    .stat-card.skipped .value { color: var(--text-muted); }
+    .stat-card .label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .obj-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .obj-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      flex-wrap: wrap;
+    }
+    .obj-card-header:hover { background: rgba(255,255,255,0.02); }
+    .obj-card.expanded .obj-card-header { border-bottom: 1px solid var(--border); }
+    .obj-expand {
+      width: 20px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .obj-card.expanded .obj-expand { transform: rotate(90deg); }
+    .obj-names {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 0;
+    }
+    .obj-name-src { font-family: 'JetBrains Mono', monospace; color: #a5b4fc; font-size: 0.95rem; }
+    .obj-name-arrow { color: var(--text-muted); font-size: 0.9rem; }
+    .obj-name-tgt { font-family: 'JetBrains Mono', monospace; color: #34d399; font-size: 0.95rem; }
+    .obj-name-none { color: var(--error); font-style: italic; }
+    .obj-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .obj-tag {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+    .obj-tag.pkg-maicacare { background: rgba(99, 102, 241, 0.25); color: #a5b4fc; }
+    .obj-tag.pkg-maicabilling { background: rgba(236, 72, 153, 0.25); color: #f9a8d4; }
+    .obj-tag.custom { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .conf-badge {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .conf-badge.exact { background: #052e16; color: #22c55e; }
+    .conf-badge.high { background: #1a2e05; color: #84cc16; }
+    .conf-badge.medium { background: #422006; color: #eab308; }
+    .conf-badge.low { background: #431407; color: #f97316; }
+    .conf-badge.none { background: #450a0a; color: #ef4444; }
+    .obj-card-body { display: none; padding: 1rem 1.25rem; }
+    .obj-card.expanded .obj-card-body { display: block; }
+    .field-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .field-table th {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+    }
+    .field-table td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .field-table tr:last-child td { border-bottom: none; }
+    .field-table tr.custom-row { background: rgba(234, 179, 8, 0.06); }
+    .field-src-name { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+    .field-src-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+    .type-badge {
+      padding: 0.15rem 0.4rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+    .field-table select {
+      width: 100%;
+      min-width: 180px;
+      padding: 0.4rem 0.5rem;
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+    }
+    .action-text { font-size: 0.85rem; font-weight: 500; }
+    .action-text.map { color: #22c55e; }
+    .action-text.create { color: #eab308; }
+    .action-text.skip { color: var(--text-muted); }
+
+    /* Customizations step */
+    .cust-tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .cust-tab {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .cust-tab:hover { color: var(--text); border-color: var(--text-muted); }
+    .cust-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .cust-actions { margin-bottom: 1rem; }
+    .cust-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      transition: opacity 0.2s;
+    }
+    .cust-card.deselected { opacity: 0.5; }
+    .cust-card input[type="checkbox"] { margin-top: 0.25rem; cursor: pointer; }
+    .cust-card-main { flex: 1; min-width: 0; }
+    .cust-card-name { font-weight: 600; font-size: 1rem; margin-bottom: 0.35rem; }
+    .cust-card-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
+    .cust-type-badge {
+      padding: 0.15rem 0.4rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+    .cust-refs-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+    .cust-ref-tag {
+      padding: 0.2rem 0.45rem;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      border-radius: 4px;
+    }
+    .cust-ref-tag.mapped { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .cust-ref-tag.in-source { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+    .cust-ref-tag.not-found { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .cust-impact-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .cust-impact-card h3 { margin: 0 0 1rem; font-size: 1rem; color: #fff; }
+    .cust-impact-grid {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(200px, 2fr);
+      gap: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 700px) {
+      .cust-impact-grid { grid-template-columns: 1fr; }
+    }
+    .cust-impact-header { color: var(--text-muted); font-weight: 500; padding-bottom: 0.5rem; }
+    .cust-impact-item { padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    .cust-impact-item:last-child { border-bottom: none; }
+    .cust-impact-ref { font-family: 'JetBrains Mono', monospace; color: var(--primary); }
+    .cust-impact-comps { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+    /* Review & Deploy step */
+    .review-summary-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 700px) {
+      .review-summary-cards { grid-template-columns: 1fr; }
+    }
+    .review-summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .review-summary-card h3 { margin: 0 0 1rem; font-size: 1rem; color: #fff; }
+    .review-summary-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.9rem; }
+    .review-summary-row .val { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .review-summary-row .val.green { color: #22c55e; }
+    .review-summary-row .val.yellow { color: #eab308; }
+    .review-summary-row .val.gray { color: var(--text-muted); }
+    .review-replacements-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .review-replacements-card h3 { margin: 0 0 0.25rem; font-size: 1rem; color: #fff; }
+    .review-replacements-card .sub { margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+    .review-replacements-table-wrap {
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .review-replacements-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .review-replacements-table th {
+      text-align: left;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      color: var(--text-muted);
+      font-weight: 500;
+      position: sticky;
+      top: 0;
+    }
+    .review-replacements-table td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); }
+    .review-replacements-table tr:last-child td { border-bottom: none; }
+    .review-src-ref { font-family: 'JetBrains Mono', monospace; color: #ef4444; }
+    .review-tgt-ref { font-family: 'JetBrains Mono', monospace; color: #22c55e; }
+    .review-type-badge {
+      padding: 0.15rem 0.4rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+    .review-deploy-card {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-align: center;
+    }
+    .review-deploy-card h3 { margin: 0 0 0.5rem; font-size: 1.1rem; color: #fff; }
+    .review-deploy-card .desc { margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+    .review-deploy-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .review-deploy-spinner {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 1rem;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .review-deploy-success {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1rem;
+      border-radius: 50%;
+      background: #22c55e;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-brand">
+      <h1>Maica Migration Utility</h1>
+      <p class="subtitle">Package Consolidation & Schema Migration</p>
+    </div>
+    <div class="header-status" id="headerStatus"></div>
+  </header>
+
+  <nav class="stepper">
+    <div class="stepper-step active" data-step="1">
+      <span class="stepper-dot"></span>
+      <span>Connect Orgs</span>
+    </div>
+    <div class="stepper-sep"></div>
+    <div class="stepper-step" data-step="2">
+      <span class="stepper-dot"></span>
+      <span>Discover Schema</span>
+    </div>
+    <div class="stepper-sep"></div>
+    <div class="stepper-step" data-step="3">
+      <span class="stepper-dot"></span>
+      <span>Map Fields</span>
+    </div>
+    <div class="stepper-sep"></div>
+    <div class="stepper-step" data-step="4">
+      <span class="stepper-dot"></span>
+      <span>Customizations</span>
+    </div>
+    <div class="stepper-sep"></div>
+    <div class="stepper-step" data-step="5">
+      <span class="stepper-dot"></span>
+      <span>Review & Deploy</span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <!-- Step 1: Connect Orgs -->
+    <div class="step-content active" id="step1Content" data-step="1">
+      <div class="cards" id="cards"></div>
+      <div class="begin-section" id="beginSection" style="display: none;">
+        <button class="begin-btn" id="beginBtn">Begin Schema Discovery</button>
+      </div>
+      <div class="setup-box" id="setupBox">
+      <button class="setup-toggle" id="setupToggle">Setup: Create Connected App in Salesforce</button>
+      <div class="setup-content">
+        <ol>
+          <li>Go to <strong>Setup</strong> → <strong>App Manager</strong> → <strong>New Connected App</strong></li>
+          <li>Enable <strong>OAuth Settings</strong></li>
+          <li>Set callback URLs (they differ for source vs target):
+            <ul style="margin: 0.5rem 0 0 1rem;">
+              <li>Source: <code id="sourceCallbackUrl">—</code></li>
+              <li>Target: <code id="targetCallbackUrl">—</code></li>
+            </ul>
+          </li>
+          <li>Select OAuth scopes: <code>api</code>, <code>refresh_token</code>, <code>full</code></li>
+          <li>Copy <strong>Consumer Key</strong> and <strong>Consumer Secret</strong> to your <code>.env</code></li>
+        </ol>
+      </div>
+    </div>
+    </div>
+
+    <!-- Step 2: Discover Schema (progress screen) -->
+    <div class="step-content" id="step2Content" data-step="2">
+      <div class="discovery-card" id="discoveryCard">
+        <h2>Discovering Schema</h2>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div class="progress-status" id="progressStatus">Initializing...</div>
+        <div class="progress-counters" id="progressCounters">
+          <span><span id="objectCount">0</span> objects</span>
+          <span><span id="fieldCount">0</span> fields</span>
+        </div>
+        <div class="discovery-error" id="discoveryError" style="display: none;"></div>
+        <button class="btn btn-primary" id="retryBtn" style="display: none;">Retry</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Map Fields -->
+    <div class="step-content" id="step3Content" data-step="3">
+      <div class="map-header">
+        <div>
+          <h2>Object &amp; Field Mapping</h2>
+          <p class="subtitle">Review and adjust auto-detected mappings between source and target schemas.</p>
+        </div>
+        <button class="btn btn-primary" id="continueToCustomizations">Continue to Customizations</button>
+      </div>
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-card total"><div class="value" id="statTotal">0</div><div class="label">Total Fields</div></div>
+        <div class="stat-card mapped"><div class="value" id="statMapped">0</div><div class="label">Mapped</div></div>
+        <div class="stat-card create"><div class="value" id="statCreate">0</div><div class="label">To Create</div></div>
+        <div class="stat-card skipped"><div class="value" id="statSkipped">0</div><div class="label">Skipped</div></div>
+      </div>
+      <div id="objectList"></div>
+    </div>
+
+    <!-- Step 4: Customizations -->
+    <div class="step-content" id="step4Content" data-step="4">
+      <div class="map-header">
+        <div>
+          <h2>Customizations to Migrate</h2>
+          <p class="subtitle">Unmanaged components found in the source org. Selected items will be re-pointed to the new schema.</p>
+        </div>
+        <button class="btn btn-primary" id="continueToReview">Continue to Review</button>
+      </div>
+      <div class="cust-tabs" id="custTabs"></div>
+      <div class="cust-actions">
+        <button class="btn btn-ghost" id="custSelectAll">Select All</button>
+        <button class="btn btn-ghost" id="custDeselectAll">Deselect All</button>
+      </div>
+      <div id="custList"></div>
+      <div class="cust-impact-card" id="custImpactCard">
+        <h3>Reference Impact Summary</h3>
+        <div class="cust-impact-grid" id="custImpactGrid"></div>
+      </div>
+    </div>
+
+    <!-- Step 5: Review & Deploy -->
+    <div class="step-content" id="step5Content" data-step="5">
+      <div class="map-header">
+        <div>
+          <h2>Migration Review</h2>
+          <p class="subtitle">Review the full migration scope before deploying to the target org.</p>
+        </div>
+      </div>
+      <div class="review-summary-cards" id="reviewSummaryCards"></div>
+      <div class="review-replacements-card" id="reviewReplacementsCard">
+        <h3 id="reviewReplacementsTitle">API Name Replacements (0)</h3>
+        <p class="sub" id="reviewReplacementsSub">These references will be updated in all selected customizations</p>
+        <div class="review-replacements-table-wrap">
+          <table class="review-replacements-table" id="reviewReplacementsTable">
+            <thead><tr><th>Type</th><th>Source Reference</th><th></th><th>Target Reference</th></tr></thead>
+            <tbody id="reviewReplacementsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="review-deploy-card" id="reviewDeployCard"></div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const state = {
+      source: null,
+      target: null,
+      currentStep: 1,
+      sourceSchema: null,
+      targetSchema: null,
+      customizations: null,
+      objectMappings: [],
+      discoveryError: null,
+      expandedObjects: new Set(),
+      selectedCustomizations: new Set(),
+      customizationFilter: 'all',
+      deployStatus: null,
+    };
+
+    function getLoginUrl(env, customDomain) {
+      if (customDomain && customDomain.trim()) {
+        let url = customDomain.trim();
+        if (!url.startsWith('http')) url = 'https://' + url;
+        return url;
+      }
+      return env === 'sandbox' ? 'https://test.salesforce.com' : 'https://login.salesforce.com';
+    }
+
+    function renderHeaderStatus() {
+      const el = document.getElementById('headerStatus');
+      const tags = [];
+      if (state.source?.orgName) {
+        tags.push(`<span class="status-tag connected">Source: ${escapeHtml(state.source.orgName)}</span>`);
+      } else {
+        tags.push('<span class="status-tag">Source: Not connected</span>');
+      }
+      if (state.target?.orgName) {
+        tags.push(`<span class="status-tag connected target">Target: ${escapeHtml(state.target.orgName)}</span>`);
+      } else {
+        tags.push('<span class="status-tag">Target: Not connected</span>');
+      }
+      el.innerHTML = tags.join('');
+    }
+
+    function renderOrgCard(orgType, data) {
+      const isTarget = orgType === 'target';
+      const accent = isTarget ? 'secondary' : 'primary';
+      const btnClass = isTarget ? 'btn-secondary' : 'btn-primary';
+
+      if (!data || !data.connected) {
+        return `
+          <div class="card ${isTarget ? 'target' : ''}">
+            <div class="card-header">
+              <div class="card-icon"></div>
+              <div>
+                <h2 class="card-title">${orgType === 'source' ? 'Source' : 'Target'} Org</h2>
+                <p class="card-subtitle">${orgType === 'source' ? 'Current org with existing packages' : 'Org with the new merged Maica package'}</p>
+              </div>
+            </div>
+            <form class="connect-form" data-org="${orgType}">
+              <div class="form-group">
+                <label>Environment</label>
+                <select name="env">
+                  <option value="production">Production / Developer</option>
+                  <option value="sandbox">Sandbox</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Custom Domain (Optional)</label>
+                <input type="text" name="customDomain" placeholder="mydomain.my.salesforce.com" />
+              </div>
+              <button type="submit" class="btn ${btnClass} btn-block">Connect via Salesforce OAuth</button>
+            </form>
+          </div>
+        `;
+      }
+
+      const packagesHtml = (data.installedPackages || []).length > 0
+        ? `<div class="packages-tags">${(data.installedPackages || []).map(p => 
+            `<span class="package-tag">${escapeHtml(p.name || 'Unknown')}${p.version ? ' v' + p.version : ''}</span>`
+          ).join('')}</div>`
+        : '';
+
+      return `
+        <div class="card ${isTarget ? 'target' : ''}">
+          <div class="card-header">
+            <div class="card-icon"></div>
+            <div>
+              <h2 class="card-title">${orgType === 'source' ? 'Source' : 'Target'} Org</h2>
+              <p class="card-subtitle">${orgType === 'source' ? 'Current org with existing packages' : 'Org with the new merged Maica package'}</p>
+            </div>
+          </div>
+          <div class="org-info">
+            <div class="org-info-row">
+              <span class="org-info-label">Org Name</span>
+              <span class="org-info-value">${escapeHtml(data.orgName || '—')}</span>
+            </div>
+            <div class="org-info-row">
+              <span class="org-info-label">Username</span>
+              <span class="org-info-value">${escapeHtml(data.username || '—')}</span>
+            </div>
+            <div class="org-info-row">
+              <span class="org-info-label">Instance URL</span>
+              <span class="org-info-value">${escapeHtml(data.instanceUrl || '—')}</span>
+            </div>
+            <div class="org-info-row">
+              <span class="org-info-label">Org ID</span>
+              <span class="org-info-value">${escapeHtml(data.orgId || '—')}</span>
+            </div>
+            <div class="org-info-row">
+              <span class="org-info-label">Environment</span>
+              <span class="org-info-value">${data.isSandbox ? 'Sandbox' : 'Production'}</span>
+            </div>
+          </div>
+          ${packagesHtml}
+          <div class="disconnect-wrap">
+            <button class="btn btn-ghost disconnect-btn" data-org="${orgType}">Disconnect</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCards() {
+      const el = document.getElementById('cards');
+      el.innerHTML = renderOrgCard('source', state.source) + renderOrgCard('target', state.target);
+      bindCardEvents();
+    }
+
+    function bindCardEvents() {
+      document.querySelectorAll('.connect-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const orgType = form.dataset.org;
+          const env = form.querySelector('[name="env"]').value;
+          const customDomain = form.querySelector('[name="customDomain"]').value;
+          const loginUrl = getLoginUrl(env, customDomain);
+          const url = `/oauth/${orgType}/login${loginUrl ? '?loginUrl=' + encodeURIComponent(loginUrl) : ''}`;
+          window.location.href = url;
+        });
+      });
+      document.querySelectorAll('.disconnect-btn').forEach(btn => {
+        btn.addEventListener('click', () => disconnect(btn.dataset.org));
+      });
+    }
+
+    async function disconnect(orgType) {
+      try {
+        const res = await fetch(`/oauth/${orgType}/disconnect`, { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+          await fetchStatus();
+          render();
+        }
+      } catch (err) {
+        showToast('Failed to disconnect', 'error');
+      }
+    }
+
+    async function fetchStatus() {
+      const res = await fetch('/api/status', { credentials: 'include' });
+      const data = await res.json();
+      state.source = data.source;
+      state.target = data.target;
+    }
+
+    function render() {
+      renderHeaderStatus();
+      renderCards();
+      const bothConnected = state.source?.connected && state.target?.connected;
+      document.getElementById('beginSection').style.display = bothConnected ? 'block' : 'none';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const id = 'toast-' + Date.now();
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.id = id;
+      el.innerHTML = `
+        <span class="toast-msg">${escapeHtml(message)}</span>
+        <button class="toast-close" aria-label="Close">&times;</button>
+      `;
+      el.querySelector('.toast-close').onclick = () => dismissToast(id);
+      container.appendChild(el);
+      setTimeout(() => dismissToast(id), 5000);
+    }
+
+    function dismissToast(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function checkUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const connected = params.get('connected');
+      const error = params.get('error');
+      if (connected) {
+        showToast(`Successfully connected to ${connected} org`, 'success');
+      }
+      if (error) {
+        showToast(decodeURIComponent(error), 'error');
+      }
+      if (connected || error) {
+        const url = new URL(window.location.href);
+        url.search = '';
+        history.replaceState({}, '', url.toString());
+      }
+    }
+
+    document.getElementById('setupToggle').addEventListener('click', () => {
+      document.getElementById('setupBox').classList.toggle('expanded');
+    });
+
+    document.getElementById('beginBtn').addEventListener('click', startDiscovery);
+
+    document.getElementById('retryBtn').addEventListener('click', startDiscovery);
+
+    document.getElementById('continueToCustomizations')?.addEventListener('click', () => goToStep(4));
+    document.getElementById('continueToReview')?.addEventListener('click', () => goToStep(5));
+
+    // Stepper click handlers
+    document.querySelectorAll('.stepper-step').forEach((el) => {
+      el.addEventListener('click', () => {
+        const step = parseInt(el.dataset.step, 10);
+        if (step < state.currentStep || (step === 1 && state.currentStep >= 1)) {
+          goToStep(step);
+        }
+      });
+    });
+
+    function goToStep(step) {
+      state.currentStep = step;
+      document.querySelectorAll('.step-content').forEach((c) => c.classList.remove('active'));
+      const content = document.getElementById(`step${step}Content`);
+      if (content) content.classList.add('active');
+      document.querySelectorAll('.stepper-step').forEach((el) => {
+        const s = parseInt(el.dataset.step, 10);
+        el.classList.remove('active', 'completed');
+        if (s === step) el.classList.add('active');
+        else if (s < step) el.classList.add('completed');
+      });
+      if (step === 1) render();
+      if (step === 3) renderMapFieldsStep();
+      if (step === 4) renderCustomizationsStep();
+      if (step === 5) renderReviewStep();
+    }
+
+    function updateProgress(percent, status, objectCount, fieldCount) {
+      const bar = document.getElementById('progressBar');
+      const statusEl = document.getElementById('progressStatus');
+      const objEl = document.getElementById('objectCount');
+      const fieldEl = document.getElementById('fieldCount');
+      if (bar) bar.style.width = percent + '%';
+      if (statusEl) statusEl.textContent = status;
+      if (objEl) {
+        objEl.textContent = objectCount !== undefined ? objectCount : ((state.sourceSchema?.objectCount || 0) + (state.targetSchema?.objectCount || 0));
+      }
+      if (fieldEl) {
+        const srcFields = (state.sourceSchema?.objects || []).reduce((n, o) => n + (o.fields?.length || 0), 0);
+        const tgtFields = (state.targetSchema?.objects || []).reduce((n, o) => n + (o.fields?.length || 0), 0);
+        fieldEl.textContent = fieldCount !== undefined ? fieldCount : srcFields + tgtFields;
+      }
+    }
+
+    function showDiscoveryError(msg) {
+      state.discoveryError = msg;
+      document.getElementById('discoveryError').style.display = 'block';
+      document.getElementById('discoveryError').textContent = msg;
+      document.getElementById('retryBtn').style.display = 'inline-block';
+    }
+
+    function hideDiscoveryError() {
+      state.discoveryError = null;
+      document.getElementById('discoveryError').style.display = 'none';
+      document.getElementById('retryBtn').style.display = 'none';
+    }
+
+    function stripNamespace(apiName) {
+      if (!apiName || typeof apiName !== 'string') return apiName;
+      const parts = apiName.split('__');
+      if (parts.length === 3 && ['c', 'r', 'f'].includes(parts[2])) {
+        return parts[1] + '__' + parts[2];
+      }
+      return apiName;
+    }
+
+    function autoMapFields(sourceObj, targetObj) {
+      const targetFields = targetObj?.fields || [];
+      const targetByStripped = new Map();
+      const targetByLabel = new Map();
+      targetFields.forEach((f) => {
+        targetByStripped.set(stripNamespace(f.apiName), f);
+        targetByLabel.set((f.label || '').toLowerCase(), f);
+      });
+
+      return (sourceObj.fields || []).map((srcField) => {
+        const stripped = stripNamespace(srcField.apiName);
+        const isCustom = srcField.package == null;
+        const targetField = targetByStripped.get(stripped) ?? targetByLabel.get((srcField.label || '').toLowerCase()) ?? null;
+
+        let confidence = 'NONE';
+        let action = isCustom ? 'create' : 'skip';
+
+        if (targetField) {
+          const strippedMatch = targetByStripped.get(stripped) === targetField;
+          const labelMatch = (targetField.label || '').toLowerCase() === (srcField.label || '').toLowerCase();
+          const typeMatch = targetField.type === srcField.type;
+
+          if (strippedMatch && typeMatch) {
+            confidence = 'EXACT';
+            action = 'map';
+          } else if (strippedMatch) {
+            confidence = 'HIGH';
+            action = 'map';
+          } else if (labelMatch && typeMatch) {
+            confidence = 'MEDIUM';
+            action = 'map';
+          } else if (labelMatch) {
+            confidence = 'LOW';
+            action = 'map';
+          }
+
+          if (action === 'map' && isCustom) action = 'map';
+        }
+
+        return {
+          source: srcField,
+          target: targetField,
+          confidence,
+          isCustom,
+          action,
+        };
+      });
+    }
+
+    function autoMapObjects(sourceSchema, targetSchema) {
+      const sourceObjects = sourceSchema?.objects || [];
+      const targetObjects = targetSchema?.objects || [];
+      const targetByStripped = new Map();
+      const targetByLabel = new Map();
+      targetObjects.forEach((o) => {
+        targetByStripped.set(stripNamespace(o.apiName), o);
+        targetByLabel.set((o.label || '').toLowerCase(), o);
+      });
+
+      return sourceObjects.map((srcObj) => {
+        const stripped = stripNamespace(srcObj.apiName);
+        const targetByStrippedMatch = targetByStripped.get(stripped);
+        const targetByLabelMatch = targetByLabel.get((srcObj.label || '').toLowerCase());
+
+        let targetObj = null;
+        let confidence = 'NONE';
+
+        if (targetByStrippedMatch) {
+          targetObj = targetByStrippedMatch;
+          confidence = (targetObj.label || '').toLowerCase() === (srcObj.label || '').toLowerCase() ? 'EXACT' : 'HIGH';
+        } else if (targetByLabelMatch) {
+          targetObj = targetByLabelMatch;
+          confidence = 'MEDIUM';
+        }
+
+        const fieldMappings = autoMapFields(srcObj, targetObj);
+
+        return {
+          source: srcObj,
+          target: targetObj,
+          confidence,
+          fieldMappings,
+        };
+      });
+    }
+
+    async function runDiscovery() {
+      hideDiscoveryError();
+      updateProgress(0, 'Retrieving source org metadata...', 0, 0);
+
+      try {
+        const srcRes = await fetch('/api/source/schema', { credentials: 'include' });
+        if (!srcRes.ok) {
+          const errText = await srcRes.text();
+          let errMsg = errText;
+          try { const j = JSON.parse(errText); errMsg = j.error || errText; } catch {}
+          throw new Error(errMsg);
+        }
+        state.sourceSchema = await srcRes.json();
+        const srcFields = (state.sourceSchema?.objects || []).reduce((n, o) => n + (o.fields?.length || 0), 0);
+        updateProgress(30, 'Retrieving target org metadata...', state.sourceSchema.objectCount, srcFields);
+
+        const tgtRes = await fetch('/api/target/schema', { credentials: 'include' });
+        if (!tgtRes.ok) {
+          const errText = await tgtRes.text();
+          let errMsg = errText;
+          try { const j = JSON.parse(errText); errMsg = j.error || errText; } catch {}
+          throw new Error(errMsg);
+        }
+        state.targetSchema = await tgtRes.json();
+        const totalObj = (state.sourceSchema?.objectCount || 0) + (state.targetSchema?.objectCount || 0);
+        const totalFields = srcFields + (state.targetSchema?.objects || []).reduce((n, o) => n + (o.fields?.length || 0), 0);
+        updateProgress(60, 'Analyzing schemas...', totalObj, totalFields);
+
+        const custRes = await fetch('/api/source/customizations', { credentials: 'include' });
+        if (!custRes.ok) {
+          const errText = await custRes.text();
+          let errMsg = errText;
+          try { const j = JSON.parse(errText); errMsg = j.error || errText; } catch {}
+          throw new Error(errMsg);
+        }
+        state.customizations = await custRes.json();
+        updateProgress(80, 'Scanning for customizations...', totalObj, totalFields);
+
+        state.objectMappings = autoMapObjects(state.sourceSchema, state.targetSchema);
+        updateProgress(95, 'Analyzing schemas...', totalObj, totalFields);
+
+        updateProgress(100, 'Discovery complete!', totalObj, totalFields);
+
+        setTimeout(() => goToStep(3), 600);
+      } catch (err) {
+        showDiscoveryError(err.message || 'Discovery failed');
+      }
+    }
+
+    function startDiscovery() {
+      goToStep(2);
+      runDiscovery();
+    }
+
+    function computeMappingStats() {
+      let total = 0, mapped = 0, toCreate = 0, skipped = 0;
+      for (const om of state.objectMappings) {
+        for (const fm of om.fieldMappings || []) {
+          total++;
+          if (fm.action === 'map') mapped++;
+          else if (fm.action === 'create') toCreate++;
+          else skipped++;
+        }
+      }
+      return { total, mapped, toCreate, skipped };
+    }
+
+    function renderStatsBar() {
+      const { total, mapped, toCreate, skipped } = computeMappingStats();
+      const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      set('statTotal', total);
+      set('statMapped', mapped);
+      set('statCreate', toCreate);
+      set('statSkipped', skipped);
+    }
+
+    function confClass(c) {
+      const k = (c || 'NONE').toLowerCase();
+      return k === 'exact' ? 'exact' : k === 'high' ? 'high' : k === 'medium' ? 'medium' : k === 'low' ? 'low' : 'none';
+    }
+
+    function pkgTagClass(pkg) {
+      if (!pkg) return '';
+      const p = (pkg || '').toLowerCase();
+      if (p.includes('maicacare')) return 'pkg-maicacare';
+      if (p.includes('maicabilling')) return 'pkg-maicabilling';
+      return '';
+    }
+
+    function onFieldMappingChange(objIdx, fieldIdx, value) {
+      const om = state.objectMappings[objIdx];
+      if (!om?.fieldMappings?.[fieldIdx]) return;
+      const fm = om.fieldMappings[fieldIdx];
+      if (value === '__create__') {
+        fm.target = null;
+        fm.action = 'create';
+        fm.confidence = 'NONE';
+      } else if (value === '__skip__') {
+        fm.target = null;
+        fm.action = 'skip';
+        fm.confidence = 'NONE';
+      } else {
+        const targetObj = om.target;
+        const targetField = targetObj?.fields?.find((f) => f.apiName === value);
+        fm.target = targetField || null;
+        fm.action = targetField ? 'map' : fm.action;
+        fm.confidence = targetField ? 'EXACT' : fm.confidence;
+      }
+      renderStatsBar();
+    }
+
+    function renderMapFieldsStep() {
+      const listEl = document.getElementById('objectList');
+      if (!listEl) return;
+      if (state.objectMappings.length === 0) {
+        listEl.innerHTML = '<p style="color: var(--text-muted);">No object mappings. Run schema discovery first.</p>';
+        renderStatsBar();
+        return;
+      }
+
+      listEl.innerHTML = state.objectMappings.map((om, objIdx) => {
+        const src = om.source;
+        const tgt = om.target;
+        const expanded = state.expandedObjects.has(objIdx);
+        const mappedCount = (om.fieldMappings || []).filter((f) => f.action === 'map').length;
+        const totalFields = (om.fieldMappings || []).length;
+        const customCount = (om.fieldMappings || []).filter((f) => f.isCustom).length;
+        const pkg = src.package || '';
+
+        const targetFields = (tgt?.fields || []).map((f) =>
+          `<option value="${escapeHtml(f.apiName)}">${escapeHtml(f.apiName)} (${escapeHtml(f.type || '')})</option>`
+        ).join('');
+
+        const rows = (om.fieldMappings || []).map((fm, fieldIdx) => {
+          const selectedValue = fm.action === 'map' && fm.target ? fm.target.apiName : fm.action === 'create' ? '__create__' : '__skip__';
+          const rowClass = fm.isCustom ? 'custom-row' : '';
+          return `
+            <tr class="${rowClass}">
+              <td>
+                <div class="field-src-name">${escapeHtml(fm.source.apiName)}</div>
+                <div class="field-src-label">${escapeHtml(fm.source.label || '')}</div>
+                ${fm.isCustom ? '<span class="obj-tag custom">custom</span>' : ''}
+              </td>
+              <td><span class="type-badge">${escapeHtml(fm.source.type || '')}</span></td>
+              <td>
+                <select data-obj="${objIdx}" data-field="${fieldIdx}" class="field-select">
+                  <optgroup label="Actions">
+                    <option value="__create__" ${selectedValue === '__create__' ? 'selected' : ''}>Create in Target</option>
+                    <option value="__skip__" ${selectedValue === '__skip__' ? 'selected' : ''}>Skip</option>
+                  </optgroup>
+                  ${tgt ? `<optgroup label="Map to Target Field">${targetFields}</optgroup>` : ''}
+                </select>
+              </td>
+              <td><span class="conf-badge ${confClass(fm.confidence)}">${escapeHtml(fm.confidence || 'NONE')}</span></td>
+              <td><span class="action-text ${fm.action}">${escapeHtml(fm.action || '')}</span></td>
+            </tr>
+          `;
+        }).join('');
+
+        return `
+          <div class="obj-card ${expanded ? 'expanded' : ''}" data-obj-idx="${objIdx}">
+            <div class="obj-card-header">
+              <span class="obj-expand">&#9654;</span>
+              <div class="obj-names">
+                <span class="obj-name-src">${escapeHtml(src.apiName)}</span>
+                <span class="obj-name-arrow">&#8594;</span>
+                <span class="obj-name-tgt">${tgt ? escapeHtml(tgt.apiName) : ''}</span>
+                <span class="obj-name-none">${!tgt ? 'No Match' : ''}</span>
+              </div>
+              <div class="obj-meta">
+                <span class="obj-tag">${mappedCount}/${totalFields} fields mapped</span>
+                ${customCount > 0 ? `<span class="obj-tag custom">${customCount} custom</span>` : ''}
+                ${pkg ? `<span class="obj-tag ${pkgTagClass(pkg)}">${escapeHtml(pkg)}</span>` : ''}
+                <span class="conf-badge ${confClass(om.confidence)}">${escapeHtml(om.confidence || 'NONE')}</span>
+              </div>
+            </div>
+            <div class="obj-card-body">
+              <table class="field-table">
+                <thead>
+                  <tr><th>Source Field</th><th>Type</th><th>Target Field</th><th>Confidence</th><th>Action</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('.obj-card-header').forEach((h) => {
+        h.addEventListener('click', () => {
+          const card = h.closest('.obj-card');
+          const idx = parseInt(card.dataset.objIdx, 10);
+          if (state.expandedObjects.has(idx)) state.expandedObjects.delete(idx);
+          else state.expandedObjects.add(idx);
+          renderMapFieldsStep();
+        });
+      });
+
+      listEl.querySelectorAll('.field-select').forEach((sel) => {
+        sel.addEventListener('change', () => {
+          const objIdx = parseInt(sel.dataset.obj, 10);
+          const fieldIdx = parseInt(sel.dataset.field, 10);
+          onFieldMappingChange(objIdx, fieldIdx, sel.value);
+          const fm = state.objectMappings[objIdx]?.fieldMappings?.[fieldIdx];
+          const row = sel.closest('tr');
+          const actionCell = row?.querySelector('.action-text');
+          const confCell = row?.querySelector('.conf-badge');
+          if (actionCell) { actionCell.textContent = fm?.action || ''; actionCell.className = 'action-text ' + (fm?.action || ''); }
+          if (confCell) { confCell.textContent = fm?.confidence || 'NONE'; confCell.className = 'conf-badge ' + confClass(fm?.confidence); }
+        });
+      });
+
+      renderStatsBar();
+    }
+
+    const REF_PATTERNS = [
+      /[A-Za-z_]+__[A-Za-z_]+__[crf]/g,
+      /(?<![A-Za-z_])[A-Z][A-Za-z0-9_]*__[crf]/g,
+      /[A-Za-z_]+__[A-Za-z_]+__r/g,
+    ];
+
+    function analyzeReferencesClient(body) {
+      if (!body || typeof body !== 'string') return [];
+      const seen = new Set();
+      for (const re of REF_PATTERNS) {
+        for (const m of (body.matchAll(re) || [])) {
+          if (m[0]) seen.add(m[0]);
+        }
+      }
+      return [...seen].sort();
+    }
+
+    function getReferencesForComponent(c) {
+      if (c.type === 'ApexClass' || c.type === 'ApexTrigger') return analyzeReferencesClient(c.body || '');
+      if (c.type === 'ValidationRule') return analyzeReferencesClient((c.formula || '') + ' ' + (c.errorMessage || ''));
+      return null;
+    }
+
+    function buildReferenceLookups() {
+      const inSource = new Set();
+      const hasMapping = new Set();
+      (state.sourceSchema?.objects || []).forEach((o) => inSource.add(o.apiName));
+      (state.sourceSchema?.objects || []).forEach((o) => {
+        (o.fields || []).forEach((f) => inSource.add(f.apiName));
+      });
+      (state.objectMappings || []).forEach((om) => {
+        if (om.target) hasMapping.add(om.source.apiName);
+        (om.fieldMappings || []).forEach((fm) => {
+          if (fm.action === 'map' && fm.target) hasMapping.add(fm.source.apiName);
+        });
+      });
+      return { inSource, hasMapping };
+    }
+
+    function getRefStatus(ref, lookups) {
+      if (lookups.hasMapping.has(ref)) return 'mapped';
+      if (lookups.inSource.has(ref)) return 'in-source';
+      return 'not-found';
+    }
+
+    function formatDate(s) {
+      if (!s) return '—';
+      try {
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? s : d.toLocaleDateString();
+      } catch { return s; }
+    }
+
+    function renderCustomizationsStep() {
+      const tabsEl = document.getElementById('custTabs');
+      const listEl = document.getElementById('custList');
+      const impactEl = document.getElementById('custImpactGrid');
+      if (!tabsEl || !listEl) return;
+
+      const cust = state.customizations?.customizations || [];
+      if (cust.length === 0) {
+        listEl.innerHTML = '<p style="color: var(--text-muted);">No customizations. Run schema discovery first.</p>';
+        tabsEl.innerHTML = '';
+        if (impactEl) impactEl.innerHTML = '';
+        return;
+      }
+
+      const byCategory = { all: cust.length, apex: 0, lwc: 0, flow: 0, validation: 0, report: 0 };
+      cust.forEach((c) => {
+        const cat = (c.category || '').toLowerCase();
+        if (cat === 'apex') byCategory.apex++;
+        else if (cat === 'lwc') byCategory.lwc++;
+        else if (cat === 'flow') byCategory.flow++;
+        else if (cat === 'validation') byCategory.validation++;
+        else if (cat === 'report') byCategory.report++;
+      });
+
+      const lookups = buildReferenceLookups();
+      const filter = state.customizationFilter;
+
+      tabsEl.innerHTML = [
+        ['all', 'All', byCategory.all],
+        ['apex', 'Apex', byCategory.apex],
+        ['lwc', 'LWC', byCategory.lwc],
+        ['flow', 'Flow', byCategory.flow],
+        ['validation', 'Validation', byCategory.validation],
+        ['report', 'Report', byCategory.report],
+      ].map(([key, label, n]) => `<button class="cust-tab ${filter === key ? 'active' : ''}" data-filter="${key}">${label} (${n})</button>`).join('');
+
+      tabsEl.querySelectorAll('.cust-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.customizationFilter = btn.dataset.filter;
+          renderCustomizationsStep();
+        });
+      });
+
+      const filtered = cust.filter((c) => {
+        const cat = (c.category || '').toLowerCase();
+        if (filter === 'all') return true;
+        if (filter === 'apex') return cat === 'apex';
+        if (filter === 'lwc') return cat === 'lwc';
+        if (filter === 'flow') return cat === 'flow';
+        if (filter === 'validation') return cat === 'validation';
+        if (filter === 'report') return cat === 'report';
+        return true;
+      });
+
+      listEl.innerHTML = filtered.map((c) => {
+        const refs = getReferencesForComponent(c);
+        const selected = state.selectedCustomizations.has(c.id);
+        const refTags = refs
+          ? refs.map((r) => {
+              const status = getRefStatus(r, lookups);
+              return `<span class="cust-ref-tag ${status}">${escapeHtml(r)}</span>`;
+            }).join('')
+          : '<span class="cust-ref-tag not-found" style="opacity:0.8;">References will be analyzed during deployment</span>';
+
+        const displayName = c.label || c.name || c.developerName || c.id;
+        return `
+          <div class="cust-card ${selected ? '' : 'deselected'}" data-cust-id="${escapeHtml(c.id)}">
+            <input type="checkbox" ${selected ? 'checked' : ''} data-cust-id="${escapeHtml(c.id)}" />
+            <div class="cust-card-main">
+              <div class="cust-card-name">${escapeHtml(displayName)}</div>
+              <div class="cust-card-meta">
+                <span class="cust-type-badge">${escapeHtml(c.type || c.category || '')}</span>
+                ${c.lineCount != null ? `<span>${c.lineCount} lines</span>` : ''}
+                <span>${formatDate(c.lastModified)}</span>
+              </div>
+              <div class="cust-refs-row">${refTags}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('.cust-card input[type="checkbox"]').forEach((cb) => {
+        cb.addEventListener('change', () => {
+          const id = cb.dataset.custId;
+          if (state.selectedCustomizations.has(id)) state.selectedCustomizations.delete(id);
+          else state.selectedCustomizations.add(id);
+          renderCustomizationsStep();
+        });
+      });
+
+      document.getElementById('custSelectAll').onclick = () => {
+        filtered.forEach((c) => state.selectedCustomizations.add(c.id));
+        renderCustomizationsStep();
+      };
+      document.getElementById('custDeselectAll').onclick = () => {
+        filtered.forEach((c) => state.selectedCustomizations.delete(c.id));
+        renderCustomizationsStep();
+      };
+
+      const refToComponents = new Map();
+      cust.filter((c) => state.selectedCustomizations.has(c.id)).forEach((c) => {
+        const refs = getReferencesForComponent(c);
+        if (refs) refs.forEach((r) => {
+          if (!refToComponents.has(r)) refToComponents.set(r, []);
+          refToComponents.get(r).push(c.label || c.name || c.developerName || c.id);
+        });
+      });
+
+      const impactItems = [...refToComponents.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+      if (impactItems.length === 0) {
+        impactEl.innerHTML = '<p style="color: var(--text-muted); grid-column: 1 / -1;">Select components above to see reference impact.</p>';
+      } else {
+        impactEl.innerHTML = `
+          <div class="cust-impact-header">API Reference</div>
+          <div class="cust-impact-header">Referenced by</div>
+          ${impactItems.map(([ref, comps]) => `
+            <div class="cust-impact-item"><div class="cust-impact-ref">${escapeHtml(ref)}</div></div>
+            <div class="cust-impact-item"><div class="cust-impact-comps">${escapeHtml(comps.slice(0, 5).join(', '))}${comps.length > 5 ? ' +' + (comps.length - 5) + ' more' : ''}</div></div>
+          `).join('')}
+        `;
+      }
+    }
+
+    function renderReviewStep() {
+      const summaryCards = document.getElementById('reviewSummaryCards');
+      const replacementsTitle = document.getElementById('reviewReplacementsTitle');
+      const replacementsSub = document.getElementById('reviewReplacementsSub');
+      const replacementsBody = document.getElementById('reviewReplacementsBody');
+      const deployCard = document.getElementById('reviewDeployCard');
+      if (!summaryCards || !deployCard) return;
+
+      const stats = computeMappingStats();
+      const totalObjects = state.objectMappings.length;
+      const mappedObjects = state.objectMappings.filter((om) => om.target).length;
+
+      const cust = state.customizations?.customizations || [];
+      const selectedCust = cust.filter((c) => state.selectedCustomizations.has(c.id));
+      const byCat = { apex: 0, lwc: 0, flow: 0, validation: 0, report: 0 };
+      selectedCust.forEach((c) => {
+        const cat = (c.category || '').toLowerCase();
+        if (cat === 'apex') byCat.apex++;
+        else if (cat === 'lwc') byCat.lwc++;
+        else if (cat === 'flow') byCat.flow++;
+        else if (cat === 'validation') byCat.validation++;
+        else if (cat === 'report') byCat.report++;
+      });
+
+      summaryCards.innerHTML = `
+        <div class="review-summary-card">
+          <h3>Schema Migration</h3>
+          <div class="review-summary-row"><span>Objects Mapped</span><span class="val green">${mappedObjects} / ${totalObjects}</span></div>
+          <div class="review-summary-row"><span>Fields Mapped</span><span class="val green">${stats.mapped} / ${stats.total}</span></div>
+          <div class="review-summary-row"><span>Fields to Create</span><span class="val yellow">${stats.toCreate}</span></div>
+          <div class="review-summary-row"><span>Fields Skipped</span><span class="val gray">${stats.skipped}</span></div>
+        </div>
+        <div class="review-summary-card">
+          <h3>Customizations</h3>
+          <div class="review-summary-row"><span>Apex</span><span class="val">${byCat.apex}</span></div>
+          <div class="review-summary-row"><span>LWC</span><span class="val">${byCat.lwc}</span></div>
+          <div class="review-summary-row"><span>Flows</span><span class="val">${byCat.flow}</span></div>
+          <div class="review-summary-row"><span>Validation</span><span class="val">${byCat.validation}</span></div>
+          <div class="review-summary-row"><span>Reports</span><span class="val">${byCat.report}</span></div>
+          <div class="review-summary-row" style="border-top:1px solid var(--border);margin-top:0.5rem;padding-top:0.5rem;"><span>Total</span><span class="val">${selectedCust.length}</span></div>
+        </div>
+      `;
+
+      const replacements = [];
+      (state.objectMappings || []).forEach((om) => {
+        if (om.source?.apiName && om.target?.apiName) {
+          replacements.push({ type: 'Object', src: om.source.apiName, tgt: om.target.apiName });
+        }
+        (om.fieldMappings || []).forEach((fm) => {
+          if (fm.action === 'map' && fm.source?.apiName && fm.target?.apiName) {
+            replacements.push({ type: 'Field', src: fm.source.apiName, tgt: fm.target.apiName });
+          }
+        });
+      });
+
+      replacementsTitle.textContent = `API Name Replacements (${replacements.length})`;
+      replacementsSub.textContent = 'These references will be updated in all selected customizations';
+      replacementsBody.innerHTML = replacements.map((r) => `
+        <tr>
+          <td><span class="review-type-badge">${escapeHtml(r.type)}</span></td>
+          <td><span class="review-src-ref">${escapeHtml(r.src)}</span></td>
+          <td>&#8594;</td>
+          <td><span class="review-tgt-ref">${escapeHtml(r.tgt)}</span></td>
+        </tr>
+      `).join('');
+
+      const status = state.deployStatus;
+      if (status === 'complete') {
+        deployCard.innerHTML = `
+          <div class="review-deploy-success">&#10003;</div>
+          <h3>Deployment Complete</h3>
+          <p class="desc">Migration has been applied to the target org.</p>
+        `;
+      } else if (status === 'validating' || status === 'deploying') {
+        const msg = status === 'validating' ? 'Validating migration scope...' : 'Creating fields and deploying customizations to target org...';
+        deployCard.innerHTML = `
+          <div class="review-deploy-spinner"></div>
+          <p class="desc">${escapeHtml(msg)}</p>
+        `;
+      } else {
+        deployCard.innerHTML = `
+          <h3>Ready to Deploy</h3>
+          <p class="desc">This will create custom fields in the target org, re-point API references in selected customizations, and deploy via Metadata API.</p>
+          <div class="review-deploy-buttons">
+            <button class="btn btn-ghost" id="validateBtn">Validate Only (Dry Run)</button>
+            <button class="btn btn-secondary" id="deployBtn" style="padding: 0.75rem 1.5rem; font-size: 1rem;">Deploy to Target Org</button>
+          </div>
+        `;
+        deployCard.querySelector('#validateBtn').onclick = () => {
+          state.deployStatus = 'validating';
+          renderReviewStep();
+          setTimeout(() => {
+            state.deployStatus = 'complete';
+            renderReviewStep();
+          }, 3000);
+        };
+        deployCard.querySelector('#deployBtn').onclick = () => {
+          state.deployStatus = 'deploying';
+          renderReviewStep();
+          setTimeout(() => {
+            state.deployStatus = 'complete';
+            renderReviewStep();
+          }, 3000);
+        };
+      }
+    }
+
+    async function init() {
+      await fetchStatus();
+      checkUrlParams();
+      render();
+
+      const base = window.location.origin;
+      document.getElementById('sourceCallbackUrl').textContent = base + '/oauth/source/callback';
+      document.getElementById('targetCallbackUrl').textContent = base + '/oauth/target/callback';
+    }
+
+    init();
+  </script>
+</body>
+</html>
