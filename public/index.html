@@ -545,6 +545,20 @@
       padding: 1.25rem;
       margin-bottom: 1rem;
     }
+    .progress-message { margin: 0 0 1rem; font-size: 0.95rem; color: var(--text-muted); }
+    .progress-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-top: 1rem;
+    }
+    .progress-log-entry { margin-bottom: 0.35rem; color: var(--text-muted); }
+    .progress-log-entry.success { color: var(--success); }
+    .progress-log-entry.error { color: var(--error); }
     .migration-plan-confirm-card ul { margin: 0.5rem 0 1rem 1.5rem; padding: 0; }
     .migration-plan-confirm-card li { margin-bottom: 0.35rem; }
     .migration-plan-step-summary { margin-bottom: 1.5rem; }
@@ -1447,13 +1461,21 @@
       </div>
       <div id="migrationPlanStepSummary" class="migration-plan-step-summary"></div>
       <div id="migrationPlanStepContent">
-        <div class="migration-plan-confirm-card">
+        <div class="migration-plan-confirm-card" id="executeMigrationCard">
           <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
           <ul>
             <li>New objects and fields will be visible to System Administrator profile by default</li>
             <li>Field types, picklist values, and validation rules will match the source</li>
           </ul>
           <button class="btn btn-primary" id="executeMigrationPlan">Execute Migration Plan</button>
+        </div>
+        <div class="migration-plan-confirm-card" id="executeMigrationProgress" style="display: none;">
+          <h3>Migration in progress</h3>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="migrationProgressBar" role="progressbar" style="width: 0;"></div>
+          </div>
+          <p class="progress-message" id="migrationProgressMessage">Starting...</p>
+          <div class="progress-log" id="migrationProgressLog"></div>
         </div>
       </div>
     </div>
@@ -3112,7 +3134,7 @@
       }
       if (actionsEl) actionsEl.style.display = 'flex';
       content.innerHTML = `
-        <div class="migration-plan-confirm-card">
+        <div class="migration-plan-confirm-card" id="executeMigrationCard">
           <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
           <ul>
             <li>New objects and fields will be visible to System Administrator profile by default</li>
@@ -3120,13 +3142,42 @@
           </ul>
           <button class="btn btn-primary" id="executeMigrationPlan">Execute Migration Plan</button>
         </div>
+        <div class="migration-plan-confirm-card" id="executeMigrationProgress" style="display: none;">
+          <h3>Migration in progress</h3>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="migrationProgressBar" role="progressbar" style="width: 0;"></div>
+          </div>
+          <p class="progress-message" id="migrationProgressMessage">Starting...</p>
+          <div class="progress-log" id="migrationProgressLog"></div>
+        </div>
       `;
       document.getElementById('executeMigrationPlan')?.addEventListener('click', executeMigrationPlan);
     }
 
     async function executeMigrationPlan() {
       const btn = document.getElementById('executeMigrationPlan');
+      const card = document.getElementById('executeMigrationCard');
+      const progressCard = document.getElementById('executeMigrationProgress');
+      const progressBar = document.getElementById('migrationProgressBar');
+      const progressMsg = document.getElementById('migrationProgressMessage');
+      const progressLog = document.getElementById('migrationProgressLog');
+
       if (btn) { btn.disabled = true; btn.textContent = 'Executing...'; }
+      if (card) card.style.display = 'none';
+      if (progressCard) progressCard.style.display = 'block';
+      if (progressBar) progressBar.style.width = '0%';
+      if (progressMsg) progressMsg.textContent = 'Starting...';
+      if (progressLog) progressLog.innerHTML = '';
+
+      const addLog = (text, type = '') => {
+        if (!progressLog) return;
+        const entry = document.createElement('div');
+        entry.className = 'progress-log-entry' + (type ? ` ${type}` : '');
+        entry.textContent = text;
+        progressLog.appendChild(entry);
+        progressLog.scrollTop = progressLog.scrollHeight;
+      };
+
       try {
         const res = await fetch('/api/migration/execute', {
           method: 'POST',
@@ -3138,14 +3189,69 @@
             targetSchema: state.targetSchema,
           }),
         });
+
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || res.statusText || 'Execution failed');
         }
-        state.migrationResult = await res.json();
-        goToStep(5);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result = {};
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const ev = JSON.parse(line);
+              if (ev.type === 'start') {
+                if (progressMsg) progressMsg.textContent = ev.message;
+                addLog(ev.message);
+              } else if (ev.type === 'progress') {
+                if (ev.percent != null && progressBar) progressBar.style.width = ev.percent + '%';
+                if (ev.message && progressMsg) progressMsg.textContent = ev.message;
+                addLog(ev.message, ev.error ? 'error' : (ev.message && ev.message.startsWith('Created') ? 'success' : ''));
+              } else if (ev.type === 'complete') {
+                result = { status: 'complete', ...ev };
+                if (progressBar) progressBar.style.width = '100%';
+                if (progressMsg) progressMsg.textContent = ev.message;
+                addLog(ev.message, 'success');
+                state.migrationResult = result;
+                goToStep(5);
+              } else if (ev.type === 'error') {
+                result = { status: 'error', ...ev };
+                addLog(ev.message || ev.error || 'Migration failed', 'error');
+                throw new Error(ev.error || ev.message || 'Migration failed');
+              }
+            } catch (e) {
+              if (e instanceof SyntaxError) continue;
+              throw e;
+            }
+          }
+        }
+
+        if (buffer.trim()) {
+          try {
+            const ev = JSON.parse(buffer);
+            if (ev.type === 'complete') {
+              result = { status: 'complete', ...ev };
+              state.migrationResult = result;
+              goToStep(5);
+            }
+          } catch (_) {}
+        }
       } catch (err) {
         showToast(err.message || 'Migration execution failed', 'error');
+        addLog(err.message || 'Migration failed', 'error');
+        if (progressMsg) progressMsg.textContent = 'Migration failed';
+        if (card) card.style.display = 'block';
+        if (progressCard) progressCard.style.display = 'none';
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Execute Migration Plan'; }
       }
@@ -3155,11 +3261,17 @@
       const el = document.getElementById('schemaSummaryContent');
       if (!el) return;
       const result = state.migrationResult || {};
+      const objs = result.objectsCreated ?? 0;
+      const flds = result.fieldsCreated ?? 0;
       el.innerHTML = `
         <div class="migration-plan-confirm-card">
           <h3>Schema migration complete</h3>
           <p>Objects and fields have been created in the target org.</p>
-          <pre style="background:var(--bg);padding:1rem;border-radius:8px;overflow:auto;font-size:0.85rem;">${escapeHtml(JSON.stringify(result, null, 2))}</pre>
+          <div class="migration-plan-summary-stats" style="margin-top:1rem;">
+            <div class="migration-plan-stat"><span class="val">${objs}</span><span class="label">Objects created</span></div>
+            <div class="migration-plan-stat"><span class="val">${flds}</span><span class="label">Fields created</span></div>
+          </div>
+          <pre style="background:var(--bg);padding:1rem;border-radius:8px;overflow:auto;font-size:0.85rem;margin-top:1rem;">${escapeHtml(JSON.stringify(result, null, 2))}</pre>
         </div>
       `;
     }
