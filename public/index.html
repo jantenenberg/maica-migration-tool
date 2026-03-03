@@ -1425,6 +1425,8 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
+    const STORAGE_KEY = 'maica-migration-state';
+
     const state = {
       source: null,
       target: null,
@@ -1452,6 +1454,43 @@
       explorerExpandedObjects: new Set(),
       explorerCustSectionsCollapsed: new Set(),
     };
+
+    function saveMigrationState() {
+      try {
+        if (!state.source?.connected || !state.target?.connected) return;
+        const payload = {
+          sourceOrgName: state.source?.orgName,
+          targetOrgName: state.target?.orgName,
+          currentStep: state.currentStep,
+          sourceSchema: state.sourceSchema,
+          targetSchema: state.targetSchema,
+          objectMappings: state.objectMappings,
+          customizations: state.customizations,
+          selectedCustomizations: [...state.selectedCustomizations],
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) { /* ignore */ }
+    }
+
+    function loadMigrationState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (!data.sourceSchema || !data.targetSchema || !data.objectMappings?.length) return false;
+        if (data.sourceOrgName !== state.source?.orgName || data.targetOrgName !== state.target?.orgName) return false;
+        state.sourceSchema = data.sourceSchema;
+        state.targetSchema = data.targetSchema;
+        state.objectMappings = data.objectMappings;
+        state.targetSchemaObjects = (state.targetSchema?.objects || []).slice().sort((a, b) =>
+          ((a.label || a.apiName || '').toLowerCase()).localeCompare((b.label || b.apiName || '').toLowerCase())
+        );
+        state.currentStep = Math.min(Math.max(1, data.currentStep || 1), 5);
+        state.customizations = data.customizations || null;
+        state.selectedCustomizations = new Set(data.selectedCustomizations || []);
+        return true;
+      } catch (e) { return false; }
+    }
 
     function getLoginUrl(env, customDomain) {
       if (customDomain && customDomain.trim()) {
@@ -2057,6 +2096,7 @@
       if (step === 3) renderMapFieldsStep();
       if (step === 4) renderCustomizationsStep();
       if (step === 5) renderReviewStep();
+      saveMigrationState();
     }
 
     function updateProgress(percent, status, objectCount, fieldCount) {
@@ -2231,6 +2271,7 @@
 
         updateProgress(100, 'Discovery complete!', totalObj, totalFields);
 
+        saveMigrationState();
         setTimeout(() => goToStep(3), 600);
       } catch (err) {
         showDiscoveryError(err.message || 'Discovery failed');
@@ -2315,6 +2356,7 @@
         }
       }
       renderMapFieldsStep();
+      saveMigrationState();
     }
 
     function getFieldStatus(fm) {
@@ -2348,6 +2390,7 @@
         fm.confidence = targetField ? 'EXACT' : fm.confidence;
       }
       renderStatsBar();
+      saveMigrationState();
     }
 
     function computeNeedsAttention() {
@@ -2955,6 +2998,7 @@
           `).join('')}
         `;
       }
+      saveMigrationState();
     }
 
     function renderReviewStep() {
@@ -3080,6 +3124,11 @@
       await fetchStatus();
       checkUrlParams();
       render();
+
+      const bothConnected = state.source?.connected && state.target?.connected;
+      if (bothConnected && loadMigrationState()) {
+        goToStep(state.currentStep);
+      }
 
       const base = window.location.origin;
       document.getElementById('sourceCallbackUrl').textContent = base + '/oauth/source/callback';
