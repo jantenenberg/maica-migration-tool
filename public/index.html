@@ -547,6 +547,27 @@
     }
     .migration-plan-confirm-card ul { margin: 0.5rem 0 1rem 1.5rem; padding: 0; }
     .migration-plan-confirm-card li { margin-bottom: 0.35rem; }
+    .migration-plan-step-summary { margin-bottom: 1.5rem; }
+    .migration-plan-summary-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .migration-plan-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 6rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+    }
+    .migration-plan-stat .val { font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--primary); }
+    .migration-plan-stat .label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
     .map-obj-search {
       flex: 1;
       min-width: 200px;
@@ -1419,7 +1440,12 @@
           <h2>Confirm Migration Plan</h2>
           <p class="subtitle">Review the migration plan below. This will create objects and fields in the target org only — no changes to the source org.</p>
         </div>
+        <div class="map-header-actions" id="migrationPlanStepActions">
+          <button type="button" class="btn btn-ghost" id="viewPlanStep4">View Migration Plan</button>
+          <button type="button" class="btn btn-ghost" id="downloadPlanStep4">Download Plan (.md)</button>
+        </div>
       </div>
+      <div id="migrationPlanStepSummary" class="migration-plan-step-summary"></div>
       <div id="migrationPlanStepContent">
         <div class="migration-plan-confirm-card">
           <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
@@ -3033,11 +3059,38 @@
       } catch { return s; }
     }
 
+    function getMigrationPlanStepSummary() {
+      const byCategory = { fully: [], partial: [], create: [], excluded: [], needs: [] };
+      (state.objectMappings || []).forEach((om) => {
+        const status = getObjectPlanStatus(om);
+        const cat = status.key === 'excluded' ? 'excluded' : status.key === 'create' ? 'create' : status.key === 'needs' ? 'needs' : status.key === 'partial' ? 'partial' : 'fully';
+        byCategory[cat].push({ om, status });
+      });
+      let objectsToCreate = byCategory.create.length;
+      let objectsToMap = byCategory.fully.length + byCategory.partial.length;
+      let fieldsToCreate = 0;
+      let fieldsToMap = 0;
+      byCategory.create.forEach(({ om }) => { fieldsToCreate += (om.fieldMappings || []).length; });
+      byCategory.fully.forEach(({ om }) => { fieldsToMap += (om.fieldMappings || []).filter((fm) => getFieldStatus(fm).class === 'mapped').length; });
+      byCategory.partial.forEach(({ om }) => {
+        (om.fieldMappings || []).forEach((fm) => {
+          const fs = getFieldStatus(fm);
+          if (fs.class === 'mapped') fieldsToMap++;
+          else if (fs.class === 'create') fieldsToCreate++;
+        });
+      });
+      return { objectsToCreate, objectsToMap, fieldsToCreate, fieldsToMap };
+    }
+
     function renderMigrationPlanStep() {
       const content = document.getElementById('migrationPlanStepContent');
+      const summaryEl = document.getElementById('migrationPlanStepSummary');
+      const actionsEl = document.getElementById('migrationPlanStepActions');
       if (!content) return;
       const needs = computeNeedsAttention();
       if (needs.total > 0) {
+        if (summaryEl) summaryEl.innerHTML = '';
+        if (actionsEl) actionsEl.style.display = 'none';
         content.innerHTML = `
           <div class="migration-plan-confirm-card" style="border-left-color:#ef4444;">
             <p><strong>Resolve unmapped items first.</strong> ${needs.objectsNeeds} objects and ${needs.fieldsNeeds} fields still need mapping. Go back to Map Fields to resolve or exclude them.</p>
@@ -3046,6 +3099,18 @@
         `;
         return;
       }
+      const summary = getMigrationPlanStepSummary();
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          <div class="migration-plan-summary-stats">
+            <div class="migration-plan-stat"><span class="val">${summary.objectsToMap}</span><span class="label">Objects to map</span></div>
+            <div class="migration-plan-stat"><span class="val">${summary.fieldsToMap}</span><span class="label">Fields to map</span></div>
+            <div class="migration-plan-stat"><span class="val">${summary.objectsToCreate}</span><span class="label">Objects to create</span></div>
+            <div class="migration-plan-stat"><span class="val">${summary.fieldsToCreate}</span><span class="label">Fields to create</span></div>
+          </div>
+        `;
+      }
+      if (actionsEl) actionsEl.style.display = 'flex';
       content.innerHTML = `
         <div class="migration-plan-confirm-card">
           <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
@@ -3420,6 +3485,8 @@
       });
       document.querySelector('#migrationPlanModal .modal-dialog')?.addEventListener('click', (e) => e.stopPropagation());
       document.getElementById('migrationPlanDownload')?.addEventListener('click', () => downloadMigrationPlan());
+      document.getElementById('viewPlanStep4')?.addEventListener('click', openMigrationPlanModal);
+      document.getElementById('downloadPlanStep4')?.addEventListener('click', downloadMigrationPlan);
       document.getElementById('downloadSchemaSummary')?.addEventListener('click', () => {
         const md = getSchemaSummaryMarkdown();
         const blob = new Blob([md], { type: 'text/markdown' });
