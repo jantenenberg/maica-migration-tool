@@ -3008,9 +3008,12 @@
         });
       });
 
-      const targetOptions = state.targetSchemaObjects.map((o) =>
-        `<option value="${escapeHtml(o.apiName)}">${escapeHtml(o.label || o.apiName)} (${escapeHtml(o.apiName)})</option>`
-      ).join('');
+      const getTargetOptionsHtml = (selectedValue) =>
+        state.targetSchemaObjects.map((o) => {
+          const val = escapeHtml(o.apiName);
+          const selected = selectedValue === o.apiName ? ' selected' : '';
+          return `<option value="${val}"${selected}>${escapeHtml(o.label || o.apiName)} (${val})</option>`;
+        }).join('');
 
       document.getElementById('mapObjTableBody').innerHTML = filtered.map(({ om, idx: objIdx }) => {
         const src = om.source;
@@ -3023,6 +3026,8 @@
         if (om.objectAction === 'create') selectedValue = '__create__';
         else if (om.objectAction === 'exclude') selectedValue = '__exclude__';
         else if (om.target) selectedValue = om.target.apiName;
+
+        const targetOptions = getTargetOptionsHtml(selectedValue);
 
         let fieldsDisplay = '';
         if (om.objectAction === 'exclude') {
