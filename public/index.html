@@ -2258,11 +2258,13 @@
         overlay.setAttribute('aria-hidden', 'false');
       }
     });
-    document.getElementById('mappingRulesClose')?.addEventListener('click', () => {
-      const overlay = document.getElementById('mappingRulesOverlay');
-      if (overlay) {
-        overlay.classList.remove('visible');
-        overlay.setAttribute('aria-hidden', 'true');
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#mappingRulesClose')) {
+        const overlay = document.getElementById('mappingRulesOverlay');
+        if (overlay) {
+          overlay.classList.remove('visible');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
       }
     });
     document.getElementById('mappingRulesOverlay')?.addEventListener('click', (e) => {
