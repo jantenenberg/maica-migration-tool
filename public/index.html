@@ -3234,8 +3234,13 @@
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || res.statusText || 'Execution failed');
+          const errText = await res.text();
+          let errMsg = res.statusText || 'Execution failed';
+          try {
+            const j = JSON.parse(errText);
+            if (j.error) errMsg = j.error;
+          } catch (_) {}
+          throw new Error(errMsg);
         }
 
         const reader = res.body.getReader();
@@ -3269,8 +3274,10 @@
                 goToStep(5);
               } else if (ev.type === 'error') {
                 result = { status: 'error', ...ev };
-                addLog(ev.message || ev.error || 'Migration failed', 'error');
-                throw new Error(ev.error || ev.message || 'Migration failed');
+                const errText = ev.message || ev.error || 'Migration failed';
+                addLog(errText, 'error');
+                if (progressMsg) progressMsg.textContent = errText;
+                throw new Error(errText);
               }
             } catch (e) {
               if (e instanceof SyntaxError) continue;
@@ -3290,9 +3297,10 @@
           } catch (_) {}
         }
       } catch (err) {
-        showToast(err.message || 'Migration execution failed', 'error');
-        addLog(err.message || 'Migration failed', 'error');
-        if (progressMsg) progressMsg.textContent = 'Migration failed';
+        const errText = err.message || 'Migration execution failed';
+        showToast(errText, 'error');
+        addLog(errText, 'error');
+        if (progressMsg) progressMsg.textContent = errText;
         if (card) card.style.display = 'block';
         if (progressCard) progressCard.style.display = 'none';
       } finally {

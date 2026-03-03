@@ -3,6 +3,17 @@ const { getConnection, requireAuth } = require('./auth');
 
 const router = express.Router();
 
+/** Extract a readable error message from various error formats (jsforce, SOAP, etc.) */
+function getErrorMessage(err) {
+  if (!err) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  if (err.message) return err.message;
+  if (err.body?.message) return err.body.message;
+  if (err.body?.faultstring) return err.body.faultstring;
+  if (Array.isArray(err)) return err.map((e) => getErrorMessage(e)).join('; ');
+  return String(err);
+}
+
 /**
  * Apply optional namespace replacement to an API name.
  * e.g. MaicaCare__Client__c -> Maica__Client__c when { source: 'MaicaCare', target: 'Maica' }
@@ -261,11 +272,14 @@ router.post(
               fieldsCount: fieldMetas.length,
             });
           } catch (err) {
+            const msg = getErrorMessage(err);
+            const fullMsg = `Failed to create object ${objFullName}: ${msg}`;
+            console.error('Migration object create error:', fullMsg, err);
             send({
               type: 'error',
-              message: `Failed to create object ${objFullName}: ${err.message}`,
+              message: fullMsg,
               object: objFullName,
-              error: err.message,
+              error: msg,
             });
             throw err;
           }
@@ -292,12 +306,15 @@ router.post(
                 field: meta.fullName,
               });
             } catch (err) {
+              const msg = getErrorMessage(err);
+              const fullMsg = `Failed to create field ${meta.fullName}: ${msg}`;
+              console.error('Migration field create error:', fullMsg, err);
               send({
                 type: 'error',
-                message: `Failed to create field ${meta.fullName}: ${err.message}`,
+                message: fullMsg,
                 object: objFullName,
                 field: meta.fullName,
-                error: err.message,
+                error: msg,
               });
               throw err;
             }
@@ -312,10 +329,12 @@ router.post(
         message: `Migration complete. Created ${objectsCreated} object(s) and ${fieldsCreated} field(s).`,
       });
     } catch (err) {
-      console.error('Migration execute error:', err);
+      const msg = getErrorMessage(err);
+      console.error('Migration execute error:', msg, err);
       send({
         type: 'error',
-        error: err.message || 'Migration failed',
+        message: msg,
+        error: msg,
         objectsCreated,
         fieldsCreated,
       });
