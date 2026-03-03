@@ -933,6 +933,7 @@
     .conf-badge.low { background: #431407; color: #f97316; }
     .conf-badge.none { background: #450a0a; color: #ef4444; }
     .conf-badge.suggested { background: #422006; color: #eab308; }
+    .conf-badge.approved { background: #052e16; color: #22c55e; }
     .obj-card-body { display: none; padding: 1rem 1.25rem; }
     .obj-card.expanded .obj-card-body { display: block; }
     .field-table {
@@ -1464,6 +1465,7 @@
           <div class="map-bulk-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToCreate">Mark all Not Mapped → Create</button>
             <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToExclude">Mark all Not Mapped → Exclude</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="bulkApproveSuggested">Approve all Suggested</button>
           </div>
         </div>
         <div class="stats-bar" id="statsBar">
@@ -2286,6 +2288,7 @@
     });
     document.getElementById('bulkNeedsToCreate')?.addEventListener('click', bulkMarkNeedsToCreate);
     document.getElementById('bulkNeedsToExclude')?.addEventListener('click', bulkMarkNeedsToExclude);
+    document.getElementById('bulkApproveSuggested')?.addEventListener('click', bulkApproveSuggested);
     document.getElementById('mapFieldsBack')?.addEventListener('click', () => {
       state.mapFieldsPhase = 'objects';
       state.selectedObjectIdx = null;
@@ -2587,6 +2590,34 @@
       saveMigrationState();
       if (objectsChanged > 0 || fieldsChanged > 0) {
         showToast(`Excluded ${objectsChanged} objects (${fieldsChanged} fields) from migration`, 'success');
+      }
+    }
+
+    function bulkApproveSuggested() {
+      let count = 0;
+      state.objectMappings.forEach((om) => {
+        const status = getObjectMappingStatus(om);
+        if ((status.class === 'suggested' || status.class === 'partially_suggested') && !om.suggestionApproved) {
+          om.suggestionApproved = true;
+          count++;
+        }
+      });
+      if (count > 0) {
+        renderMapFieldsStep();
+        saveMigrationState();
+        showToast(`Approved ${count} suggested mapping(s) for migration plan`, 'success');
+      }
+    }
+
+    function approveObjectMapping(objIdx) {
+      const om = state.objectMappings[objIdx];
+      if (!om) return;
+      const status = getObjectMappingStatus(om);
+      if (status.class === 'suggested' || status.class === 'partially_suggested') {
+        om.suggestionApproved = true;
+        renderMapFieldsStep();
+        saveMigrationState();
+        showToast('Approved for migration plan', 'success');
       }
     }
 
@@ -3039,8 +3070,13 @@
           fieldsDisplay = `<span class="map-obj-fields-link" data-obj-idx="${objIdx}">${mappedCount} / ${totalFields} mapped</span>`;
         }
 
+        const isSuggested = status.class === 'suggested' || status.class === 'partially_suggested';
+        const isApproved = om.suggestionApproved === true;
         const suggestedBadge = om.target && (om.objectMatchType || getObjectMatchType(om.source, om.target)) === 'suggested'
-          ? `<span class="conf-badge suggested" style="margin-left:0.5rem;">Suggested</span>`
+          ? (isApproved ? `<span class="conf-badge approved" style="margin-left:0.5rem;">Approved</span>` : `<span class="conf-badge suggested" style="margin-left:0.5rem;">Suggested</span>`)
+          : '';
+        const approveBtn = isSuggested && !isApproved
+          ? `<button type="button" class="btn btn-ghost btn-sm approve-suggested-btn" data-obj-idx="${objIdx}" title="Approve for migration plan">Approve</button>`
           : '';
 
         return `
@@ -3058,6 +3094,7 @@
                 <optgroup label="Target Objects">${targetOptions}</optgroup>
               </select>
               ${suggestedBadge}
+              ${approveBtn}
             </td>
             <td><span class="map-obj-status ${status.class}">${escapeHtml(status.label)}</span></td>
             <td>${fieldsDisplay}</td>
@@ -3067,6 +3104,9 @@
 
       document.getElementById('mapObjTableBody').querySelectorAll('.map-obj-select').forEach((sel) => {
         sel.addEventListener('change', () => onObjectMappingChange(parseInt(sel.dataset.objIdx, 10), sel.value));
+      });
+      document.getElementById('mapObjTableBody').querySelectorAll('.approve-suggested-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); approveObjectMapping(parseInt(btn.dataset.objIdx, 10)); });
       });
 
       const openFieldMapping = (objIdx) => {
@@ -3079,7 +3119,7 @@
       });
       document.getElementById('mapObjTableBody').querySelectorAll('.map-obj-row-clickable[data-obj-idx]').forEach((row) => {
         row.addEventListener('click', (e) => {
-          if (!e.target.closest('select') && !e.target.closest('.map-obj-fields-link')) openFieldMapping(row.dataset.objIdx);
+          if (!e.target.closest('select') && !e.target.closest('.map-obj-fields-link') && !e.target.closest('.approve-suggested-btn')) openFieldMapping(row.dataset.objIdx);
         });
       });
 
