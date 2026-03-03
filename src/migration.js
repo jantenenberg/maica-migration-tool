@@ -101,11 +101,14 @@ function buildFieldMetadata(sourceField, objectFullName, namespaceReplacement) {
       const refTo = sourceField.referenceTo?.[0];
       if (!refTo) return null;
       const refObject = applyNamespace(refTo, namespaceReplacement);
+      const baseName = (sourceField.apiName || '').replace(/__c$/, '') || 'Lookup';
+      const objPart = (objectFullName || '').replace(/__c$/, '').replace(/__/g, '_');
+      const relName = `${objPart}_${baseName}`.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'Rel';
       return {
         ...base,
         type: 'Lookup',
         referenceTo: refObject,
-        relationshipName: sourceField.apiName?.replace(/__c$/, '__r') || undefined,
+        relationshipName: relName,
       };
     }
     case 'id':
@@ -126,6 +129,80 @@ function buildFieldMetadata(sourceField, objectFullName, namespaceReplacement) {
     default:
       return { ...base, type: 'Text', length: 255 };
   }
+}
+
+/**
+ * Get the full API name for an object from its mapping (create or map).
+ */
+function getObjectFullName(om, namespaceReplacement) {
+  if (om.objectAction === 'create' && om.source) {
+    return applyNamespace(om.source.apiName, namespaceReplacement);
+  }
+  if (om.objectAction === 'map' && om.target) {
+    return om.target.apiName;
+  }
+  return null;
+}
+
+/**
+ * Topologically sort object mappings so that objects referenced by Lookups are created first.
+ */
+function sortByDependencies(toProcess, namespaceReplacement) {
+  const nameToIndex = new Map();
+  toProcess.forEach((om, i) => {
+    const name = getObjectFullName(om, namespaceReplacement);
+    if (name) nameToIndex.set(name, i);
+  });
+
+  const getRefs = (om) => {
+    const refs = [];
+    for (const fm of om.fieldMappings || []) {
+      const f = fm.source || fm;
+      if ((f.type || '').toLowerCase() !== 'reference' && (f.type || '').toLowerCase() !== 'lookup') continue;
+      const refTo = f.referenceTo?.[0];
+      if (!refTo) continue;
+      const refName = applyNamespace(refTo, namespaceReplacement);
+      if (refName.endsWith('__c') && refName !== getObjectFullName(om, namespaceReplacement)) {
+        refs.push(refName);
+      }
+    }
+    return refs;
+  };
+
+  const sorted = [];
+  const visited = new Set();
+  const visiting = new Set();
+
+  function visit(i) {
+    if (visited.has(i)) return;
+    if (visiting.has(i)) return; // cycle, ignore
+    visiting.add(i);
+    const om = toProcess[i];
+    const refs = getRefs(om);
+    for (const refName of refs) {
+      const j = nameToIndex.get(refName);
+      if (j != null && j !== i) visit(j);
+    }
+    visiting.delete(i);
+    visited.add(i);
+    sorted.push(i);
+  }
+
+  for (let i = 0; i < toProcess.length; i++) visit(i);
+  return sorted.map((i) => toProcess[i]);
+}
+
+/**
+ * Check if a Lookup field should be skipped because its referenced object is not in the migration.
+ */
+function shouldSkipLookupField(sourceField, objectsBeingCreated, namespaceReplacement) {
+  const type = (sourceField.type || '').toLowerCase();
+  if (type !== 'reference' && type !== 'lookup') return false;
+  const refTo = sourceField.referenceTo?.[0];
+  if (!refTo) return false;
+  const refName = applyNamespace(refTo, namespaceReplacement);
+  if (!refName.endsWith('__c')) return false; // standard object, always exists
+  return !objectsBeingCreated.has(refName);
 }
 
 /**
@@ -216,9 +293,14 @@ router.post(
     let fieldsCreated = 0;
 
     try {
-      const toProcess = objectMappings.filter(
+      let toProcess = objectMappings.filter(
         (om) => om.objectAction === 'create' || (om.objectAction === 'map' && om.target)
       );
+
+      const objectsBeingCreated = new Set(
+        toProcess.map((om) => getObjectFullName(om, namespaceReplacement)).filter(Boolean)
+      );
+      toProcess = sortByDependencies(toProcess, namespaceReplacement);
 
       let totalSteps = 0;
       for (const om of toProcess) {
@@ -280,6 +362,16 @@ router.post(
           }
 
           for (const f of fieldsToCreate) {
+            if (shouldSkipLookupField(f, objectsBeingCreated, namespaceReplacement)) {
+              const refTo = applyNamespace(f.referenceTo?.[0], namespaceReplacement);
+              advanceProgress(`Skipped ${objFullName}.${applyNamespace(f.apiName, namespaceReplacement)}: referenced object ${refTo} not in migration`, {
+                object: objFullName,
+                field: `${objFullName}.${applyNamespace(f.apiName, namespaceReplacement)}`,
+                skipped: true,
+                reason: 'referenced_object_not_in_migration',
+              });
+              continue;
+            }
             const meta = buildFieldMetadata(f, objFullName, namespaceReplacement);
             if (!meta) continue;
 
@@ -322,7 +414,18 @@ router.post(
           );
 
           for (const fm of fieldsToCreate) {
-            const meta = buildFieldMetadata(fm.source, objFullName, namespaceReplacement);
+            const src = fm.source;
+            if (shouldSkipLookupField(src, objectsBeingCreated, namespaceReplacement)) {
+              const refTo = applyNamespace(src.referenceTo?.[0], namespaceReplacement);
+              advanceProgress(`Skipped ${objFullName}.${applyNamespace(src.apiName, namespaceReplacement)}: referenced object ${refTo} not in migration`, {
+                object: objFullName,
+                field: `${objFullName}.${applyNamespace(src.apiName, namespaceReplacement)}`,
+                skipped: true,
+                reason: 'referenced_object_not_in_migration',
+              });
+              continue;
+            }
+            const meta = buildFieldMetadata(src, objFullName, namespaceReplacement);
             if (!meta) continue;
 
             sendProgress(`Creating field ${meta.fullName}...`, {

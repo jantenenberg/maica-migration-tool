@@ -598,6 +598,10 @@
       border: 1px solid var(--border);
       border-radius: 10px;
     }
+    .map-fields-phase2-table {
+      max-height: 60vh;
+      overflow-y: auto;
+    }
     .map-obj-table {
       width: 100%;
       border-collapse: collapse;
@@ -623,6 +627,7 @@
     }
     .map-obj-table tr:last-child td { border-bottom: none; }
     .map-obj-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .map-obj-row-clickable { cursor: pointer; }
     .map-obj-src-label { font-weight: 500; display: block; }
     .map-obj-src-api { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; }
     .map-obj-select {
@@ -1439,7 +1444,7 @@
       <div id="mapFieldsPhase2" style="display: none;">
         <button class="btn btn-ghost map-fields-back" id="mapFieldsBack">← Back to Object Mapping</button>
         <div id="mapFieldsPhase2Header"></div>
-        <div class="map-obj-table-wrap">
+        <div class="map-obj-table-wrap map-fields-phase2-table">
           <table class="field-table" id="mapFieldTable">
             <thead><tr><th>Source Field</th><th>Type</th><th>Target Field</th><th>Confidence</th><th>Action</th></tr></thead>
             <tbody id="mapFieldTableBody"></tbody>
@@ -2906,7 +2911,7 @@
           : '';
 
         return `
-          <tr>
+          <tr class="map-obj-row-clickable" data-obj-idx="${objIdx}">
             <td>
               <span class="map-obj-src-label">${escapeHtml(src.label || src.apiName)}</span>
               <span class="map-obj-src-api">${escapeHtml(src.apiName)}</span>
@@ -2931,11 +2936,17 @@
         sel.addEventListener('change', () => onObjectMappingChange(parseInt(sel.dataset.objIdx, 10), sel.value));
       });
 
+      const openFieldMapping = (objIdx) => {
+        state.mapFieldsPhase = 'fields';
+        state.selectedObjectIdx = parseInt(objIdx, 10);
+        renderMapFieldsStep();
+      };
       document.getElementById('mapObjTableBody').querySelectorAll('.map-obj-fields-link[data-obj-idx]').forEach((link) => {
-        link.addEventListener('click', () => {
-          state.mapFieldsPhase = 'fields';
-          state.selectedObjectIdx = parseInt(link.dataset.objIdx, 10);
-          renderMapFieldsStep();
+        link.addEventListener('click', (e) => { e.stopPropagation(); openFieldMapping(link.dataset.objIdx); });
+      });
+      document.getElementById('mapObjTableBody').querySelectorAll('.map-obj-row-clickable[data-obj-idx]').forEach((row) => {
+        row.addEventListener('click', (e) => {
+          if (!e.target.closest('select') && !e.target.closest('.map-obj-fields-link')) openFieldMapping(row.dataset.objIdx);
         });
       });
 
