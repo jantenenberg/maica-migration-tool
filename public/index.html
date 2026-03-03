@@ -1453,7 +1453,6 @@
           </div>
         </div>
         <div class="map-header-actions">
-          <button type="button" class="btn btn-ghost btn-sm" id="downloadMappingMd" title="Export current mappings as mapping.md blueprint">Export mapping.md</button>
           <button type="button" class="btn btn-primary migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
           <button class="btn btn-primary" id="continueToMigrationPlan" title="">Continue to Migration Plan</button>
         </div>
@@ -1467,6 +1466,7 @@
             <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToCreate">Mark all Not Mapped → Create</button>
             <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToExclude">Mark all Not Mapped → Exclude</button>
             <button type="button" class="btn btn-ghost btn-sm" id="bulkApproveSuggested">Approve all Suggested</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="downloadMappingMd" title="Export all mapped objects and fields as mapping.md blueprint">Export mapping.md</button>
           </div>
         </div>
         <div class="stats-bar" id="statsBar">
@@ -2600,7 +2600,7 @@
       } catch (_) { return false; }
     }
 
-    /** Generate mapping.md content from current object mappings. */
+    /** Generate mapping.md content from current object mappings. Includes all mapped objects (fully mapped, partially mapped, suggested, partially suggested) and their mapped fields. */
     function exportMappingMd() {
       const lines = ['# Maica Migration Mapping', '', '## Object Mappings', ''];
       const fieldSections = [];
