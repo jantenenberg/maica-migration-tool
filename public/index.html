@@ -566,8 +566,15 @@
       position: sticky;
       top: 0;
       z-index: 1;
+      border-right: 1px solid var(--border);
     }
-    .map-obj-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; line-height: 1.4; }
+    .map-obj-table td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      vertical-align: middle;
+      line-height: 1.4;
+    }
     .map-obj-table tr:last-child td { border-bottom: none; }
     .map-obj-table tr:hover td { background: rgba(255,255,255,0.02); }
     .map-obj-src-label { font-weight: 500; display: block; }
