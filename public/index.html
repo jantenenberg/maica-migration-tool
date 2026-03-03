@@ -1415,6 +1415,7 @@
           <div class="explorer-filter-btns" id="mapObjFilterTabs"></div>
           <div class="map-bulk-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToCreate">Mark all Needs Mapping → Create</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToExclude">Mark all Needs Mapping → Exclude</button>
           </div>
         </div>
         <div class="stats-bar" id="statsBar">
@@ -2198,6 +2199,7 @@
       renderMapFieldsStep();
     });
     document.getElementById('bulkNeedsToCreate')?.addEventListener('click', bulkMarkNeedsToCreate);
+    document.getElementById('bulkNeedsToExclude')?.addEventListener('click', bulkMarkNeedsToExclude);
     document.getElementById('mapFieldsBack')?.addEventListener('click', () => {
       state.mapFieldsPhase = 'objects';
       state.selectedObjectIdx = null;
@@ -2418,6 +2420,31 @@
     function startDiscovery() {
       goToStep(2);
       runDiscovery();
+    }
+
+    function bulkMarkNeedsToExclude() {
+      let objectsChanged = 0, fieldsChanged = 0;
+      state.objectMappings.forEach((om) => {
+        const objStatus = getObjectMappingStatus(om);
+        if (objStatus.class === 'needs') {
+          om.objectAction = 'exclude';
+          om.target = null;
+          objectsChanged++;
+          (om.fieldMappings || []).forEach((fm) => {
+            fm.action = 'skip';
+            fm.target = null;
+            fm.confidence = 'NONE';
+            fieldsChanged++;
+          });
+        }
+      });
+      renderMapFieldsStep();
+      updateMapFieldsContinueAndStepper();
+      renderStatsBar();
+      saveMigrationState();
+      if (objectsChanged > 0 || fieldsChanged > 0) {
+        showToast(`Excluded ${objectsChanged} objects (${fieldsChanged} fields) from migration`, 'success');
+      }
     }
 
     function bulkMarkNeedsToCreate() {
