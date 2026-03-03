@@ -511,6 +511,143 @@
     .step-content.active { display: block; }
 
     /* Map Fields step */
+    .map-obj-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .map-obj-summary .map-obj-stat { color: var(--text-muted); }
+    .map-obj-summary .map-obj-stat strong { font-family: 'JetBrains Mono', monospace; }
+    .map-obj-summary .map-obj-stat.mapped strong { color: #22c55e; }
+    .map-obj-summary .map-obj-stat.create strong { color: #eab308; }
+    .map-obj-summary .map-obj-stat.needs strong { color: #ef4444; }
+    .map-obj-summary .map-obj-stat.excluded strong { color: var(--text-muted); }
+    .map-obj-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .map-obj-search {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.6rem 1rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+    }
+    .map-obj-search::placeholder { color: var(--text-muted); }
+    .map-obj-table-wrap {
+      max-height: 480px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .map-obj-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .map-obj-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      color: var(--text-muted);
+      font-weight: 500;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .map-obj-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .map-obj-table tr:last-child td { border-bottom: none; }
+    .map-obj-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .map-obj-src-label { font-weight: 500; display: block; }
+    .map-obj-src-api { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .map-obj-select {
+      min-width: 220px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+    }
+    .map-obj-status { font-size: 0.85rem; font-weight: 500; }
+    .map-obj-status.mapped { color: #22c55e; }
+    .map-obj-status.create { color: #eab308; }
+    .map-obj-status.excluded { color: var(--text-muted); }
+    .map-obj-status.needs { color: #ef4444; }
+    .map-obj-fields-link {
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: underline;
+      font-weight: 500;
+    }
+    .map-obj-fields-link:hover { color: var(--primary-hover); }
+    .map-obj-fields-link.excluded { color: var(--text-muted); cursor: default; text-decoration: none; }
+    .map-fields-phase2 {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .map-fields-back { margin-bottom: 1rem; }
+    .map-fields-phase2-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .map-fields-phase2-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+    .map-fields-phase2-stats .mapped { color: #22c55e; }
+    .map-fields-phase2-stats .create { color: #eab308; }
+    .map-fields-phase2-stats .excluded { color: var(--text-muted); }
+    .map-fields-phase2-stats .needs { color: #ef4444; }
+    .migration-plan-card {
+      margin-top: 1.5rem;
+      padding: 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .migration-plan-card h3 { margin: 0 0 1rem; font-size: 1.1rem; color: #fff; }
+    .migration-plan-section {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .migration-plan-section:last-child { margin-bottom: 0; }
+    .migration-plan-section.objects-create { background: rgba(234, 179, 8, 0.15); border-left: 4px solid #eab308; }
+    .migration-plan-section.field-mappings { background: rgba(34, 197, 94, 0.15); border-left: 4px solid #22c55e; }
+    .migration-plan-section.fields-create { background: rgba(234, 179, 8, 0.15); border-left: 4px solid #eab308; }
+    .migration-plan-section.excluded { background: rgba(113, 113, 122, 0.15); border-left: 4px solid var(--text-muted); }
+    .migration-plan-section.needs-attention { background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; }
+    .migration-plan-section h4 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+    .migration-plan-section ul { margin: 0.25rem 0 0 1rem; padding: 0; }
+    .migration-plan-section li { margin-bottom: 0.25rem; }
+    .stepper-step.warning .stepper-dot { background: #eab308; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4); }
     .map-header {
       display: flex;
       align-items: flex-start;
@@ -540,12 +677,14 @@
     .stat-card.total { border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08); }
     .stat-card.mapped { border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.08); }
     .stat-card.create { border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.08); }
-    .stat-card.skipped { border-color: var(--border); }
+    .stat-card.excluded { border-color: var(--border); }
+    .stat-card.needs { border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); }
     .stat-card .value { font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
     .stat-card.total .value { color: #6366f1; }
     .stat-card.mapped .value { color: #22c55e; }
     .stat-card.create .value { color: #eab308; }
-    .stat-card.skipped .value { color: var(--text-muted); }
+    .stat-card.excluded .value { color: var(--text-muted); }
+    .stat-card.needs .value { color: #ef4444; }
     .stat-card .label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
     .obj-card {
       background: var(--surface);
@@ -596,6 +735,7 @@
     }
     .obj-tag.pkg-maicacare { background: rgba(99, 102, 241, 0.25); color: #a5b4fc; }
     .obj-tag.pkg-maicabilling { background: rgba(236, 72, 153, 0.25); color: #f9a8d4; }
+    .obj-tag.pkg-unmanaged { background: rgba(234, 179, 8, 0.2); color: #eab308; }
     .obj-tag.custom { background: rgba(234, 179, 8, 0.2); color: #eab308; }
     .conf-badge {
       padding: 0.2rem 0.5rem;
@@ -753,6 +893,7 @@
     .review-summary-row .val.green { color: #22c55e; }
     .review-summary-row .val.yellow { color: #eab308; }
     .review-summary-row .val.gray { color: var(--text-muted); }
+    .review-summary-row .val.red { color: #ef4444; }
     .review-replacements-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -1110,15 +1251,43 @@
       <div class="map-header">
         <div>
           <h2>Object &amp; Field Mapping</h2>
-          <p class="subtitle">Review and adjust auto-detected mappings between source and target schemas.</p>
+          <p class="subtitle">Map source objects to target objects, then configure field mappings.</p>
         </div>
-        <button class="btn btn-primary" id="continueToCustomizations">Continue to Customizations</button>
+        <button class="btn btn-primary" id="continueToCustomizations" title="">Continue to Customizations</button>
       </div>
-      <div class="stats-bar" id="statsBar">
-        <div class="stat-card total"><div class="value" id="statTotal">0</div><div class="label">Total Fields</div></div>
-        <div class="stat-card mapped"><div class="value" id="statMapped">0</div><div class="label">Mapped</div></div>
-        <div class="stat-card create"><div class="value" id="statCreate">0</div><div class="label">To Create</div></div>
-        <div class="stat-card skipped"><div class="value" id="statSkipped">0</div><div class="label">Skipped</div></div>
+      <div id="mapFieldsPhase1" style="display: none;">
+        <div class="map-obj-summary" id="mapObjSummary"></div>
+        <div class="map-obj-filters">
+          <input type="text" class="map-obj-search" id="mapObjSearch" placeholder="Search objects..." />
+          <div class="explorer-filter-btns" id="mapObjFilterTabs"></div>
+        </div>
+        <div class="stats-bar" id="statsBar">
+          <div class="stat-card total"><div class="value" id="statTotal">0</div><div class="label">Total Fields</div></div>
+          <div class="stat-card mapped"><div class="value" id="statMapped">0</div><div class="label">Mapped</div></div>
+          <div class="stat-card create"><div class="value" id="statCreate">0</div><div class="label">To Create</div></div>
+          <div class="stat-card excluded"><div class="value" id="statExcluded">0</div><div class="label">Excluded</div></div>
+          <div class="stat-card needs"><div class="value" id="statNeeds">0</div><div class="label">Needs Mapping</div></div>
+        </div>
+        <div class="map-obj-table-wrap">
+          <table class="map-obj-table" id="mapObjTable">
+            <thead><tr><th>Source Object</th><th>Target Object</th><th>Status</th><th>Fields</th></tr></thead>
+            <tbody id="mapObjTableBody"></tbody>
+          </table>
+        </div>
+        <div class="migration-plan-card" id="migrationPlanCard">
+          <h3>Migration Plan</h3>
+          <div id="migrationPlanContent"></div>
+        </div>
+      </div>
+      <div id="mapFieldsPhase2" style="display: none;">
+        <button class="btn btn-ghost map-fields-back" id="mapFieldsBack">← Back to Object Mapping</button>
+        <div id="mapFieldsPhase2Header"></div>
+        <div class="map-obj-table-wrap" style="max-height: 400px;">
+          <table class="field-table" id="mapFieldTable">
+            <thead><tr><th>Source Field</th><th>Type</th><th>Target Field</th><th>Confidence</th><th>Action</th></tr></thead>
+            <tbody id="mapFieldTableBody"></tbody>
+          </table>
+        </div>
       </div>
       <div id="objectList"></div>
     </div>
@@ -1224,6 +1393,11 @@
       targetSchema: null,
       customizations: null,
       objectMappings: [],
+      targetSchemaObjects: [],
+      mapFieldsPhase: 'objects',
+      selectedObjectIdx: null,
+      mapFieldsObjectFilter: 'all',
+      mapFieldsObjectSearch: '',
       discoveryError: null,
       expandedObjects: new Set(),
       selectedCustomizations: new Set(),
@@ -1785,6 +1959,15 @@
     document.getElementById('customizationsRetry').addEventListener('click', () => loadExplorerCustomizations());
 
     document.getElementById('continueToCustomizations')?.addEventListener('click', () => goToStep(4));
+    document.getElementById('mapObjSearch')?.addEventListener('input', (e) => {
+      state.mapFieldsObjectSearch = e.target.value;
+      renderMapFieldsStep();
+    });
+    document.getElementById('mapFieldsBack')?.addEventListener('click', () => {
+      state.mapFieldsPhase = 'objects';
+      state.selectedObjectIdx = null;
+      renderMapFieldsStep();
+    });
     document.getElementById('continueToReview')?.addEventListener('click', () => goToStep(5));
 
     // Stepper click handlers
@@ -1868,7 +2051,7 @@
         const targetField = targetByStripped.get(stripped) ?? targetByLabel.get((srcField.label || '').toLowerCase()) ?? null;
 
         let confidence = 'NONE';
-        let action = isCustom ? 'create' : 'skip';
+        let action = isCustom ? 'create' : 'needs';
 
         if (targetField) {
           const strippedMatch = targetByStripped.get(stripped) === targetField;
@@ -1935,6 +2118,7 @@
           target: targetObj,
           confidence,
           fieldMappings,
+          objectAction: targetObj ? 'map' : undefined,
         };
       });
     }
@@ -1978,6 +2162,9 @@
         updateProgress(80, 'Scanning for customizations...', totalObj, totalFields);
 
         state.objectMappings = autoMapObjects(state.sourceSchema, state.targetSchema);
+        state.targetSchemaObjects = (state.targetSchema?.objects || []).slice().sort((a, b) =>
+          ((a.label || a.apiName || '').toLowerCase()).localeCompare((b.label || b.apiName || '').toLowerCase())
+        );
         updateProgress(95, 'Analyzing schemas...', totalObj, totalFields);
 
         updateProgress(100, 'Discovery complete!', totalObj, totalFields);
@@ -1994,25 +2181,27 @@
     }
 
     function computeMappingStats() {
-      let total = 0, mapped = 0, toCreate = 0, skipped = 0;
+      let total = 0, mapped = 0, toCreate = 0, excluded = 0, needs = 0;
       for (const om of state.objectMappings) {
         for (const fm of om.fieldMappings || []) {
           total++;
           if (fm.action === 'map') mapped++;
           else if (fm.action === 'create') toCreate++;
-          else skipped++;
+          else if (fm.action === 'skip') excluded++;
+          else needs++;
         }
       }
-      return { total, mapped, toCreate, skipped };
+      return { total, mapped, toCreate, excluded, needs };
     }
 
     function renderStatsBar() {
-      const { total, mapped, toCreate, skipped } = computeMappingStats();
+      const { total, mapped, toCreate, excluded, needs } = computeMappingStats();
       const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
       set('statTotal', total);
       set('statMapped', mapped);
       set('statCreate', toCreate);
-      set('statSkipped', skipped);
+      set('statExcluded', excluded);
+      set('statNeeds', needs);
     }
 
     function confClass(c) {
@@ -2021,11 +2210,56 @@
     }
 
     function pkgTagClass(pkg) {
-      if (!pkg) return '';
+      if (!pkg) return 'pkg-unmanaged';
       const p = (pkg || '').toLowerCase();
       if (p.includes('maicacare')) return 'pkg-maicacare';
       if (p.includes('maicabilling')) return 'pkg-maicabilling';
-      return '';
+      return 'pkg-unmanaged';
+    }
+
+    function getObjectMappingStatus(om) {
+      const action = om.objectAction;
+      if (action === 'exclude') return { label: 'Excluded', class: 'excluded' };
+      if (action === 'create') return { label: 'Create New', class: 'create' };
+      if (om.target) return { label: 'Mapped', class: 'mapped' };
+      return { label: 'Needs Mapping', class: 'needs' };
+    }
+
+    function onObjectMappingChange(objIdx, value) {
+      const om = state.objectMappings[objIdx];
+      if (!om) return;
+      if (value === '__create__') {
+        om.objectAction = 'create';
+        om.target = null;
+        (om.fieldMappings || []).forEach((fm) => { fm.action = 'create'; fm.target = null; fm.confidence = 'NONE'; });
+      } else if (value === '__exclude__') {
+        om.objectAction = 'exclude';
+        om.target = null;
+      } else if (value === '__select__') {
+        om.objectAction = undefined;
+        om.target = null;
+        om.confidence = 'NONE';
+        (om.fieldMappings || []).forEach((fm) => {
+          fm.action = fm.isCustom ? 'create' : 'needs';
+          fm.target = null;
+          fm.confidence = 'NONE';
+        });
+      } else {
+        const targetObj = state.targetSchemaObjects.find((o) => o.apiName === value);
+        if (targetObj) {
+          om.objectAction = 'map';
+          om.target = targetObj;
+          om.fieldMappings = autoMapFields(om.source, targetObj);
+        }
+      }
+      renderMapFieldsStep();
+    }
+
+    function getFieldStatus(fm) {
+      if (fm.action === 'skip') return { label: 'Excluded', class: 'excluded' };
+      if (fm.action === 'create') return { label: 'Create', class: 'create' };
+      if (fm.action === 'map' && fm.target) return { label: 'Mapped', class: 'mapped' };
+      return { label: 'Needs Mapping', class: 'needs' };
     }
 
     function onFieldMappingChange(objIdx, fieldIdx, value) {
@@ -2040,6 +2274,10 @@
         fm.target = null;
         fm.action = 'skip';
         fm.confidence = 'NONE';
+      } else if (value === '__select__') {
+        fm.target = null;
+        fm.action = fm.isCustom ? 'create' : 'needs';
+        fm.confidence = 'NONE';
       } else {
         const targetObj = om.target;
         const targetField = targetObj?.fields?.find((f) => f.apiName === value);
@@ -2050,107 +2288,392 @@
       renderStatsBar();
     }
 
+    function computeNeedsAttention() {
+      let objectsNeeds = 0, fieldsNeeds = 0;
+      state.objectMappings.forEach((om) => {
+        const objStatus = getObjectMappingStatus(om);
+        if (objStatus.class === 'needs') objectsNeeds++;
+        if (om.objectAction === 'map' && om.target) {
+          (om.fieldMappings || []).forEach((fm) => {
+            const fs = getFieldStatus(fm);
+            if (fs.class === 'needs') fieldsNeeds++;
+          });
+        }
+      });
+      return { objectsNeeds, fieldsNeeds, total: objectsNeeds + fieldsNeeds };
+    }
+
+    function renderMigrationPlan() {
+      const el = document.getElementById('migrationPlanContent');
+      if (!el) return;
+
+      const objectsCreate = state.objectMappings.filter((om) => om.objectAction === 'create');
+      const objectsExcluded = state.objectMappings.filter((om) => om.objectAction === 'exclude');
+      const objectsMapped = state.objectMappings.filter((om) => om.objectAction === 'map' && om.target);
+
+      let fieldsMappedCount = 0;
+      const nsReplacements = new Map();
+      const fieldsToCreate = [];
+      let fieldsExcludedCount = 0;
+
+      objectsMapped.forEach((om) => {
+        (om.fieldMappings || []).forEach((fm) => {
+          const fs = getFieldStatus(fm);
+          if (fs.class === 'mapped') {
+            fieldsMappedCount++;
+            const srcNs = (fm.source?.apiName || '').split('__')[0];
+            const tgtNs = (fm.target?.apiName || '').split('__')[0];
+            if (srcNs && tgtNs) {
+              const key = `${srcNs}__* → ${tgtNs}__*`;
+              nsReplacements.set(key, (nsReplacements.get(key) || 0) + 1);
+            }
+          } else if (fs.class === 'create') {
+            fieldsToCreate.push({ object: om.target?.label || om.target?.apiName, field: fm.source?.apiName });
+          } else if (fs.class === 'excluded') fieldsExcludedCount++;
+        });
+      });
+
+      objectsExcluded.forEach((om) => {
+        fieldsExcludedCount += (om.fieldMappings || []).length;
+      });
+
+      const needs = computeNeedsAttention();
+
+      const nsSummary = [...nsReplacements.entries()].map(([k, n]) => `${k} (${n} fields)`).join(', ');
+
+      let html = '';
+
+      if (objectsCreate.length > 0) {
+        html += `
+          <div class="migration-plan-section objects-create">
+            <h4>Objects to Create</h4>
+            <p style="margin:0;color:var(--text-muted);">These objects and all their fields will be created in the target org.</p>
+            <ul>${objectsCreate.map((om) => `<li><span class="mono">${escapeHtml(om.source?.apiName)}</span> (${(om.fieldMappings || []).length} fields)</li>`).join('')}</ul>
+          </div>
+        `;
+      }
+
+      if (fieldsMappedCount > 0) {
+        html += `
+          <div class="migration-plan-section field-mappings">
+            <h4>Field Mappings</h4>
+            <p style="margin:0;">${fieldsMappedCount} fields across ${objectsMapped.length} objects will be mapped from source to target.</p>
+            ${nsSummary ? `<p style="margin:0.5rem 0 0;color:var(--text-muted);font-size:0.85rem;">${escapeHtml(nsSummary)}</p>` : ''}
+          </div>
+        `;
+      }
+
+      if (fieldsToCreate.length > 0) {
+        const byObj = {};
+        fieldsToCreate.forEach(({ object, field }) => {
+          if (!byObj[object]) byObj[object] = [];
+          byObj[object].push(field);
+        });
+        html += `
+          <div class="migration-plan-section fields-create">
+            <h4>Fields to Create</h4>
+            <p style="margin:0;">${fieldsToCreate.length} custom fields will be created on existing target objects.</p>
+            <ul>${Object.entries(byObj).map(([obj, fields]) => `<li><span class="mono">${escapeHtml(obj)}</span>: ${fields.map((f) => escapeHtml(f)).join(', ')}</li>`).join('')}</ul>
+          </div>
+        `;
+      }
+
+      if (objectsExcluded.length > 0 || fieldsExcludedCount > 0) {
+        html += `
+          <div class="migration-plan-section excluded">
+            <h4>Excluded</h4>
+            <p style="margin:0;">${objectsExcluded.length} objects and ${fieldsExcludedCount} fields excluded from migration.</p>
+          </div>
+        `;
+      }
+
+      if (needs.total > 0) {
+        html += `
+          <div class="migration-plan-section needs-attention">
+            <h4>Needs Attention</h4>
+            <p style="margin:0;">${needs.objectsNeeds} objects and ${needs.fieldsNeeds} fields still need mapping. Resolve or exclude before continuing.</p>
+          </div>
+        `;
+      }
+
+      el.innerHTML = html || '<p style="color:var(--text-muted);margin:0;">Complete object and field mappings to see the migration plan.</p>';
+    }
+
     function renderMapFieldsStep() {
-      const listEl = document.getElementById('objectList');
-      if (!listEl) return;
+      const phase1 = document.getElementById('mapFieldsPhase1');
+      const phase2 = document.getElementById('mapFieldsPhase2');
+      if (!phase1 || !phase2) return;
+
       if (state.objectMappings.length === 0) {
-        listEl.innerHTML = '<p style="color: var(--text-muted);">No object mappings. Run schema discovery first.</p>';
+        phase1.style.display = 'none';
+        phase2.style.display = 'none';
+        const listEl = document.getElementById('objectList');
+        if (listEl) listEl.innerHTML = '<p style="color: var(--text-muted);">No object mappings. Run schema discovery first.</p>';
         renderStatsBar();
         return;
       }
 
-      listEl.innerHTML = state.objectMappings.map((om, objIdx) => {
-        const src = om.source;
-        const tgt = om.target;
-        const expanded = state.expandedObjects.has(objIdx);
-        const mappedCount = (om.fieldMappings || []).filter((f) => f.action === 'map').length;
-        const totalFields = (om.fieldMappings || []).length;
-        const customCount = (om.fieldMappings || []).filter((f) => f.isCustom).length;
-        const pkg = src.package || '';
+      if (state.mapFieldsPhase === 'fields' && state.selectedObjectIdx != null) {
+        phase1.style.display = 'none';
+        phase2.style.display = 'block';
+        renderMapFieldsPhase2();
+        return;
+      }
 
-        const targetFields = (tgt?.fields || []).map((f) =>
-          `<option value="${escapeHtml(f.apiName)}">${escapeHtml(f.apiName)} (${escapeHtml(f.type || '')})</option>`
-        ).join('');
+      phase1.style.display = 'block';
+      phase2.style.display = 'none';
+      const listEl = document.getElementById('objectList');
+      if (listEl) listEl.innerHTML = '';
 
-        const rows = (om.fieldMappings || []).map((fm, fieldIdx) => {
-          const selectedValue = fm.action === 'map' && fm.target ? fm.target.apiName : fm.action === 'create' ? '__create__' : '__skip__';
-          const rowClass = fm.isCustom ? 'custom-row' : '';
-          return `
-            <tr class="${rowClass}">
-              <td>
-                <div class="field-src-name">${escapeHtml(fm.source.apiName)}</div>
-                <div class="field-src-label">${escapeHtml(fm.source.label || '')}</div>
-                ${fm.isCustom ? '<span class="obj-tag custom">custom</span>' : ''}
-              </td>
-              <td><span class="type-badge">${escapeHtml(fm.source.type || '')}</span></td>
-              <td>
-                <select data-obj="${objIdx}" data-field="${fieldIdx}" class="field-select">
-                  <optgroup label="Actions">
-                    <option value="__create__" ${selectedValue === '__create__' ? 'selected' : ''}>Create in Target</option>
-                    <option value="__skip__" ${selectedValue === '__skip__' ? 'selected' : ''}>Skip</option>
-                  </optgroup>
-                  ${tgt ? `<optgroup label="Map to Target Field">${targetFields}</optgroup>` : ''}
-                </select>
-              </td>
-              <td><span class="conf-badge ${confClass(fm.confidence)}">${escapeHtml(fm.confidence || 'NONE')}</span></td>
-              <td><span class="action-text ${fm.action}">${escapeHtml(fm.action || '')}</span></td>
-            </tr>
-          `;
-        }).join('');
+      const search = (state.mapFieldsObjectSearch || '').toLowerCase();
+      const filter = state.mapFieldsObjectFilter || 'all';
 
-        return `
-          <div class="obj-card ${expanded ? 'expanded' : ''}" data-obj-idx="${objIdx}">
-            <div class="obj-card-header">
-              <span class="obj-expand">&#9654;</span>
-              <div class="obj-names">
-                <span class="obj-name-src">${escapeHtml(src.apiName)}</span>
-                <span class="obj-name-arrow">&#8594;</span>
-                <span class="obj-name-tgt">${tgt ? escapeHtml(tgt.apiName) : ''}</span>
-                <span class="obj-name-none">${!tgt ? 'No Match' : ''}</span>
-              </div>
-              <div class="obj-meta">
-                <span class="obj-tag">${mappedCount}/${totalFields} fields mapped</span>
-                ${customCount > 0 ? `<span class="obj-tag custom">${customCount} custom</span>` : ''}
-                ${pkg ? `<span class="obj-tag ${pkgTagClass(pkg)}">${escapeHtml(pkg)}</span>` : ''}
-                <span class="conf-badge ${confClass(om.confidence)}">${escapeHtml(om.confidence || 'NONE')}</span>
-              </div>
-            </div>
-            <div class="obj-card-body">
-              <table class="field-table">
-                <thead>
-                  <tr><th>Source Field</th><th>Type</th><th>Target Field</th><th>Confidence</th><th>Action</th></tr>
-                </thead>
-                <tbody>${rows}</tbody>
-              </table>
-            </div>
-          </div>
-        `;
-      }).join('');
+      let filtered = state.objectMappings.map((om, idx) => ({ om, idx }));
+      if (search) {
+        filtered = filtered.filter(({ om }) => {
+          const label = (om.source?.label || '').toLowerCase();
+          const api = (om.source?.apiName || '').toLowerCase();
+          return label.includes(search) || api.includes(search);
+        });
+      }
+      if (filter !== 'all') {
+        filtered = filtered.filter(({ om }) => {
+          const status = getObjectMappingStatus(om);
+          if (filter === 'mapped') return status.class === 'mapped';
+          if (filter === 'needs') return status.class === 'needs';
+          if (filter === 'create') return status.class === 'create';
+          if (filter === 'excluded') return status.class === 'excluded';
+          return true;
+        });
+      }
 
-      listEl.querySelectorAll('.obj-card-header').forEach((h) => {
-        h.addEventListener('click', () => {
-          const card = h.closest('.obj-card');
-          const idx = parseInt(card.dataset.objIdx, 10);
-          if (state.expandedObjects.has(idx)) state.expandedObjects.delete(idx);
-          else state.expandedObjects.add(idx);
+      const counts = { all: state.objectMappings.length, mapped: 0, needs: 0, create: 0, excluded: 0 };
+      state.objectMappings.forEach((om) => {
+        const s = getObjectMappingStatus(om);
+        if (s.class === 'mapped') counts.mapped++;
+        else if (s.class === 'needs') counts.needs++;
+        else if (s.class === 'create') counts.create++;
+        else if (s.class === 'excluded') counts.excluded++;
+      });
+
+      document.getElementById('mapObjSummary').innerHTML = `
+        <span class="map-obj-stat">Total Objects: <strong>${counts.all}</strong></span>
+        <span class="map-obj-stat mapped">Mapped: <strong>${counts.mapped}</strong></span>
+        <span class="map-obj-stat create">Create New: <strong>${counts.create}</strong></span>
+        <span class="map-obj-stat needs">Needs Mapping: <strong>${counts.needs}</strong></span>
+        <span class="map-obj-stat excluded">Excluded: <strong>${counts.excluded}</strong></span>
+      `;
+
+      document.getElementById('mapObjFilterTabs').innerHTML = [
+        ['all', 'All', counts.all],
+        ['mapped', 'Mapped', counts.mapped],
+        ['needs', 'Needs Mapping', counts.needs],
+        ['create', 'Create New', counts.create],
+        ['excluded', 'Excluded', counts.excluded],
+      ].map(([key, label, n]) => `<button class="explorer-filter-btn ${filter === key ? 'active' : ''}" data-map-filter="${key}">${label} (${n})</button>`).join('');
+
+      document.getElementById('mapObjFilterTabs').querySelectorAll('.explorer-filter-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.mapFieldsObjectFilter = btn.dataset.mapFilter;
           renderMapFieldsStep();
         });
       });
 
-      listEl.querySelectorAll('.field-select').forEach((sel) => {
-        sel.addEventListener('change', () => {
-          const objIdx = parseInt(sel.dataset.obj, 10);
-          const fieldIdx = parseInt(sel.dataset.field, 10);
-          onFieldMappingChange(objIdx, fieldIdx, sel.value);
-          const fm = state.objectMappings[objIdx]?.fieldMappings?.[fieldIdx];
-          const row = sel.closest('tr');
-          const actionCell = row?.querySelector('.action-text');
-          const confCell = row?.querySelector('.conf-badge');
-          if (actionCell) { actionCell.textContent = fm?.action || ''; actionCell.className = 'action-text ' + (fm?.action || ''); }
-          if (confCell) { confCell.textContent = fm?.confidence || 'NONE'; confCell.className = 'conf-badge ' + confClass(fm?.confidence); }
+      const targetOptions = state.targetSchemaObjects.map((o) =>
+        `<option value="${escapeHtml(o.apiName)}">${escapeHtml(o.label || o.apiName)} (${escapeHtml(o.apiName)})</option>`
+      ).join('');
+
+      document.getElementById('mapObjTableBody').innerHTML = filtered.map(({ om, idx: objIdx }) => {
+        const src = om.source;
+        const status = getObjectMappingStatus(om);
+        const pkg = src.package || '';
+        const totalFields = (om.fieldMappings || []).length;
+        const mappedCount = (om.fieldMappings || []).filter((f) => f.action === 'map').length;
+
+        let selectedValue = '__select__';
+        if (om.objectAction === 'create') selectedValue = '__create__';
+        else if (om.objectAction === 'exclude') selectedValue = '__exclude__';
+        else if (om.target) selectedValue = om.target.apiName;
+
+        let fieldsDisplay = '';
+        if (om.objectAction === 'exclude') {
+          fieldsDisplay = `<span class="map-obj-fields-link excluded">excluded</span>`;
+        } else if (om.objectAction === 'create') {
+          const createCount = (om.fieldMappings || []).filter((f) => f.action === 'create').length;
+          fieldsDisplay = `<span class="map-obj-fields-link" data-obj-idx="${objIdx}">${createCount} fields to create</span>`;
+        } else {
+          fieldsDisplay = `<span class="map-obj-fields-link" data-obj-idx="${objIdx}">${mappedCount} / ${totalFields} mapped</span>`;
+        }
+
+        const confBadge = om.target && om.confidence && om.confidence !== 'NONE'
+          ? `<span class="conf-badge ${confClass(om.confidence)}" style="margin-left:0.5rem;">${escapeHtml(om.confidence)}</span>`
+          : '';
+
+        return `
+          <tr>
+            <td>
+              <span class="map-obj-src-label">${escapeHtml(src.label || src.apiName)}</span>
+              <span class="map-obj-src-api">${escapeHtml(src.apiName)}</span>
+              <span class="obj-tag ${pkgTagClass(pkg)}" style="display:inline-block;margin-top:0.35rem;">${escapeHtml(pkg || 'Unmanaged')}</span>
+            </td>
+            <td>
+              <select class="map-obj-select" data-obj-idx="${objIdx}">
+                <option value="__select__" ${selectedValue === '__select__' ? 'selected' : ''}>-- Select Target Object --</option>
+                <option value="__create__" ${selectedValue === '__create__' ? 'selected' : ''}>➕ Create as New Object</option>
+                <option value="__exclude__" ${selectedValue === '__exclude__' ? 'selected' : ''}>⏭️ Exclude from Migration</option>
+                <optgroup label="Target Objects">${targetOptions}</optgroup>
+              </select>
+              ${confBadge}
+            </td>
+            <td><span class="map-obj-status ${status.class}">${escapeHtml(status.label)}</span></td>
+            <td>${fieldsDisplay}</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('mapObjTableBody').querySelectorAll('.map-obj-select').forEach((sel) => {
+        sel.addEventListener('change', () => onObjectMappingChange(parseInt(sel.dataset.objIdx, 10), sel.value));
+      });
+
+      document.getElementById('mapObjTableBody').querySelectorAll('.map-obj-fields-link[data-obj-idx]').forEach((link) => {
+        link.addEventListener('click', () => {
+          state.mapFieldsPhase = 'fields';
+          state.selectedObjectIdx = parseInt(link.dataset.objIdx, 10);
+          renderMapFieldsStep();
         });
       });
 
+      const searchEl = document.getElementById('mapObjSearch');
+      if (searchEl) searchEl.value = state.mapFieldsObjectSearch || '';
+
+      renderMigrationPlan();
+      updateMapFieldsContinueAndStepper();
+      renderStatsBar();
+    }
+
+    function updateMapFieldsContinueAndStepper() {
+      const needs = computeNeedsAttention();
+      const btn = document.getElementById('continueToCustomizations');
+      if (btn) {
+        btn.disabled = needs.total > 0;
+        btn.title = needs.total > 0 ? 'Resolve all unmapped items or exclude them before continuing.' : '';
+      }
+      const step3El = document.querySelector('.stepper-step[data-step="3"]');
+      if (step3El) {
+        if (needs.total > 0) step3El.classList.add('warning');
+        else step3El.classList.remove('warning');
+      }
+    }
+
+    function renderMapFieldsPhase2() {
+      const objIdx = state.selectedObjectIdx;
+      const phase2Header = document.getElementById('mapFieldsPhase2Header');
+      const fieldTableBody = document.getElementById('mapFieldTableBody');
+      if (objIdx == null || !phase2Header || !fieldTableBody) return;
+
+      const om = state.objectMappings[objIdx];
+      if (!om) return;
+
+      const src = om.source;
+      const tgt = om.target;
+      const isCreateNewObject = om.objectAction === 'create';
+
+      const targetFieldsList = (tgt?.fields || []).slice().sort((a, b) =>
+        ((a.label || a.apiName || '').toLowerCase()).localeCompare((b.label || b.apiName || '').toLowerCase())
+      );
+      const targetFields = targetFieldsList.map((f) =>
+        `<option value="${escapeHtml(f.apiName)}">${escapeHtml(f.label || f.apiName)} (${escapeHtml(f.apiName)}) [${escapeHtml(f.type || '')}]</option>`
+      ).join('');
+
+      const fieldStats = { mapped: 0, create: 0, excluded: 0, needs: 0 };
+      (om.fieldMappings || []).forEach((fm) => {
+        const fs = getFieldStatus(fm);
+        if (fs.class === 'mapped') fieldStats.mapped++;
+        else if (fs.class === 'create') fieldStats.create++;
+        else if (fs.class === 'excluded') fieldStats.excluded++;
+        else fieldStats.needs++;
+      });
+
+      phase2Header.innerHTML = `
+        <div class="map-fields-phase2-header">
+          <div>
+            <h3 style="margin:0 0 0.35rem;">Source: ${escapeHtml(src.label || src.apiName)} (${escapeHtml(src.apiName)}) → Target: ${tgt ? escapeHtml(tgt.label || tgt.apiName) + ' (' + escapeHtml(tgt.apiName) + ')' : 'N/A'}</h3>
+            <div class="map-fields-phase2-stats">
+              <span class="mapped">${fieldStats.mapped} mapped</span>
+              <span class="create">${fieldStats.create} to create</span>
+              <span class="excluded">${fieldStats.excluded} excluded</span>
+              <span class="needs">${fieldStats.needs} need mapping</span>
+            </div>
+          </div>
+          <button class="btn btn-ghost" id="mapFieldsPhase2Close">Close</button>
+        </div>
+      `;
+
+      document.getElementById('mapFieldsPhase2Close')?.addEventListener('click', () => {
+        state.mapFieldsPhase = 'objects';
+        state.selectedObjectIdx = null;
+        renderMapFieldsStep();
+      });
+
+      const rows = (om.fieldMappings || []).map((fm, fieldIdx) => {
+        const selectedValue = fm.action === 'map' && fm.target ? fm.target.apiName : fm.action === 'create' ? '__create__' : fm.action === 'skip' ? '__skip__' : '__select__';
+        const rowClass = fm.isCustom ? 'custom-row' : '';
+        const fieldStatus = getFieldStatus(fm);
+        const pkg = fm.source?.package;
+        const pkgTag = pkg ? `<span class="obj-tag ${pkgTagClass(pkg)}">${escapeHtml(pkg)}</span>` : '<span class="obj-tag pkg-unmanaged">Custom</span>';
+
+        let selectHtml = '';
+        if (isCreateNewObject) {
+          selectHtml = `<select data-obj="${objIdx}" data-field="${fieldIdx}" class="field-select" disabled title="Will be created with new object">
+            <option value="__create__" selected>Will be created with new object</option>
+          </select>`;
+        } else {
+          selectHtml = `
+            <select data-obj="${objIdx}" data-field="${fieldIdx}" class="field-select">
+              <option value="__select__" ${selectedValue === '__select__' ? 'selected' : ''}>-- Select Target Field --</option>
+              <option value="__create__" ${selectedValue === '__create__' ? 'selected' : ''}>➕ Create in Target</option>
+              <option value="__skip__" ${selectedValue === '__skip__' ? 'selected' : ''}>⏭️ Exclude from Migration</option>
+              ${tgt ? `<optgroup label="Target Fields">${targetFields}</optgroup>` : ''}
+            </select>
+          `;
+        }
+
+        return `
+          <tr class="${rowClass}">
+            <td>
+              <div class="map-obj-src-label">${escapeHtml(fm.source?.label || fm.source?.apiName || '')}</div>
+              <div class="map-obj-src-api">${escapeHtml(fm.source?.apiName || '')}</div>
+              ${pkgTag}
+            </td>
+            <td><span class="type-badge">${escapeHtml(fm.source?.type || '')}</span></td>
+            <td>${selectHtml}</td>
+            <td><span class="conf-badge ${confClass(fm.confidence)}">${escapeHtml(fm.confidence || 'NONE')}</span></td>
+            <td><span class="map-obj-status ${fieldStatus.class}">${escapeHtml(fieldStatus.label)}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      const fieldTable = document.getElementById('mapFieldTable');
+      if (fieldTable) {
+        fieldTable.querySelector('thead tr').innerHTML = '<th>Source Field</th><th>Type</th><th>Target Field</th><th>Match Confidence</th><th>Status</th>';
+      }
+
+      fieldTableBody.innerHTML = rows;
+
+      if (!isCreateNewObject) {
+        fieldTableBody.querySelectorAll('.field-select:not([disabled])').forEach((sel) => {
+          sel.addEventListener('change', () => {
+            const oi = parseInt(sel.dataset.obj, 10);
+            const fi = parseInt(sel.dataset.field, 10);
+            onFieldMappingChange(oi, fi, sel.value);
+            renderMapFieldsPhase2();
+            updateMapFieldsContinueAndStepper();
+            renderStatsBar();
+          });
+        });
+      }
+
+      updateMapFieldsContinueAndStepper();
       renderStatsBar();
     }
 
@@ -2392,7 +2915,8 @@
           <div class="review-summary-row"><span>Objects Mapped</span><span class="val green">${mappedObjects} / ${totalObjects}</span></div>
           <div class="review-summary-row"><span>Fields Mapped</span><span class="val green">${stats.mapped} / ${stats.total}</span></div>
           <div class="review-summary-row"><span>Fields to Create</span><span class="val yellow">${stats.toCreate}</span></div>
-          <div class="review-summary-row"><span>Fields Skipped</span><span class="val gray">${stats.skipped}</span></div>
+          <div class="review-summary-row"><span>Fields Excluded</span><span class="val gray">${stats.excluded}</span></div>
+          <div class="review-summary-row"><span>Fields Need Mapping</span><span class="val red">${stats.needs}</span></div>
         </div>
         <div class="review-summary-card">
           <h3>Customizations</h3>
