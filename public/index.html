@@ -961,6 +961,66 @@
     }
     .explorer-cust-card .cust-card-name { font-weight: 600; font-size: 1rem; margin-bottom: 0.35rem; }
     .explorer-cust-card .cust-card-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
+    .cust-section {
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .cust-section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.9rem 1.25rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .cust-section-header:hover { opacity: 0.9; }
+    .cust-section-header .cust-section-icon { font-size: 1.1rem; opacity: 0.9; }
+    .cust-section-header .cust-section-count {
+      padding: 0.2rem 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.15);
+    }
+    .cust-section-header .cust-section-expand {
+      margin-left: auto;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      transition: transform 0.2s;
+    }
+    .cust-section.collapsed .cust-section-expand { transform: rotate(-90deg); }
+    .cust-section-body { padding: 0 1.25rem 1.25rem; }
+    .cust-section.collapsed .cust-section-body { display: none; }
+    .cust-section.code { border-left: 4px solid #3b82f6; }
+    .cust-section.code .cust-section-header { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+    .cust-section.components { border-left: 4px solid #a855f7; }
+    .cust-section.components .cust-section-header { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; }
+    .cust-section.automation { border-left: 4px solid #22c55e; }
+    .cust-section.automation .cust-section-header { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+    .cust-section.configuration { border-left: 4px solid #f97316; }
+    .cust-section.configuration .cust-section-header { background: rgba(249, 115, 22, 0.15); color: #fdba74; }
+    .cust-section.reporting { border-left: 4px solid #14b8a6; }
+    .cust-section.reporting .cust-section-header { background: rgba(20, 184, 166, 0.15); color: #5eead4; }
+    .cust-summary-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .cust-summary-bar .cust-summary-item { color: var(--text-muted); }
+    .cust-summary-bar .cust-summary-item strong { color: var(--text); font-family: 'JetBrains Mono', monospace; }
+    .cust-ref-tag.maicacare { background: rgba(99, 102, 241, 0.25); color: #a5b4fc; }
+    .cust-ref-tag.maicabilling { background: rgba(236, 72, 153, 0.25); color: #f9a8d4; }
+    .cust-ref-tag.custom { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .cust-ref-tag.standard { background: rgba(113, 113, 122, 0.25); color: #a1a1aa; }
   </style>
 </head>
 <body>
@@ -1175,6 +1235,7 @@
       explorerDataModelSearch: '',
       explorerCustFilter: 'all',
       explorerExpandedObjects: new Set(),
+      explorerCustSectionsCollapsed: new Set(),
     };
 
     function getLoginUrl(env, customDomain) {
@@ -1520,6 +1581,43 @@
       }
     }
 
+    const CUST_SECTION_DEFS = [
+      { id: 'code', label: 'Code', icon: '&lt;/&gt;', types: ['ApexClass', 'ApexTrigger'] },
+      { id: 'components', label: 'Components', icon: '\u{1F9E9}', types: ['LightningComponentBundle', 'AuraDefinitionBundle'] },
+      { id: 'automation', label: 'Automation', icon: '\u21BB', types: ['Flow', 'ValidationRule'] },
+      { id: 'configuration', label: 'Configuration', icon: '\u2699', types: ['PermissionSet', 'Layout', 'CustomLabel'] },
+      { id: 'reporting', label: 'Reporting', icon: '\u{1F4CA}', types: ['Report'] },
+    ];
+
+    function renderExplorerCustCard(c) {
+      const refs = getReferencesForComponent(c);
+      const refTags = refs
+        ? refs.map((r) => {
+            const pkg = getRefPackageClass(r);
+            return `<span class="cust-ref-tag ${pkg}">${escapeHtml(r)}</span>`;
+          }).join('')
+        : '';
+
+      const displayName = c.label || c.name || c.developerName || c.id;
+      const typeLabel = c.type === 'ApexClass' ? 'Class' : c.type === 'ApexTrigger' ? 'Trigger' : c.type === 'LightningComponentBundle' ? 'LWC' : c.type === 'AuraDefinitionBundle' ? 'Aura' : (c.type || c.category || '');
+
+      let meta = `<span class="cust-type-badge">${escapeHtml(typeLabel)}</span>`;
+      if (c.lineCount != null) meta += `<span>${c.lineCount} lines</span>`;
+      if (c.targetObject) meta += `<span class="mono">${escapeHtml(c.targetObject)}</span>`;
+      if (c.processType) meta += `<span>${escapeHtml(c.processType)}</span>`;
+      if (c.folder) meta += `<span>${escapeHtml(c.folder)}</span>`;
+      if (c.value) meta += `<span title="${escapeHtml((c.value || '').slice(0, 80))}">${escapeHtml((c.value || '').slice(0, 40))}${(c.value || '').length > 40 ? '…' : ''}</span>`;
+      meta += `<span>${formatDate(c.lastModified)}</span>`;
+
+      return `
+        <div class="explorer-cust-card">
+          <div class="cust-card-name">${escapeHtml(displayName)}</div>
+          <div class="cust-card-meta">${meta}</div>
+          ${refTags ? `<div class="cust-refs-row">${refTags}</div>` : ''}
+        </div>
+      `;
+    }
+
     function renderExplorerCustomizations() {
       const data = state.explorerCustomizations;
       const content = document.getElementById('customizationsContent');
@@ -1527,37 +1625,36 @@
       const tabsEl = document.getElementById('explorerCustTabs');
       if (!data?.customizations) {
         content.innerHTML = '<p style="color: var(--text-muted);">No customizations.</p>';
+        statsEl.innerHTML = '';
+        tabsEl.innerHTML = '';
         return;
       }
       const cust = data.customizations || [];
       const filter = state.explorerCustFilter || 'all';
 
-      const byCategory = { all: cust.length, apex: 0, lwc: 0, flow: 0, validation: 0, report: 0 };
-      cust.forEach((c) => {
-        const cat = (c.category || '').toLowerCase();
-        if (cat === 'apex') byCategory.apex++;
-        else if (cat === 'lwc') byCategory.lwc++;
-        else if (cat === 'flow') byCategory.flow++;
-        else if (cat === 'validation') byCategory.validation++;
-        else if (cat === 'report') byCategory.report++;
+      const byGroup = { code: 0, components: 0, automation: 0, configuration: 0, reporting: 0 };
+      const bySection = {};
+      CUST_SECTION_DEFS.forEach((s) => {
+        bySection[s.id] = cust.filter((c) => s.types.includes(c.type)).length;
+        byGroup[s.id] = bySection[s.id];
       });
+      const total = cust.length;
 
       statsEl.innerHTML = `
-        <span class="stat-item">Total components: <strong>${cust.length}</strong></span>
-        <span class="stat-item">Apex: <strong>${byCategory.apex}</strong></span>
-        <span class="stat-item">LWC: <strong>${byCategory.lwc}</strong></span>
-        <span class="stat-item">Flow: <strong>${byCategory.flow}</strong></span>
-        <span class="stat-item">Validation: <strong>${byCategory.validation}</strong></span>
-        <span class="stat-item">Report: <strong>${byCategory.report}</strong></span>
+        <span class="cust-summary-item">Code: <strong>${byGroup.code}</strong></span>
+        <span class="cust-summary-item">Components: <strong>${byGroup.components}</strong></span>
+        <span class="cust-summary-item">Automation: <strong>${byGroup.automation}</strong></span>
+        <span class="cust-summary-item">Configuration: <strong>${byGroup.configuration}</strong></span>
+        <span class="cust-summary-item">Reporting: <strong>${byGroup.reporting}</strong></span>
       `;
 
       tabsEl.innerHTML = [
-        ['all', 'All', byCategory.all],
-        ['apex', 'Apex', byCategory.apex],
-        ['lwc', 'LWC', byCategory.lwc],
-        ['flow', 'Flow', byCategory.flow],
-        ['validation', 'Validation', byCategory.validation],
-        ['report', 'Report', byCategory.report],
+        ['all', 'All', total],
+        ['code', 'Code', byGroup.code],
+        ['components', 'Components', byGroup.components],
+        ['automation', 'Automation', byGroup.automation],
+        ['configuration', 'Configuration', byGroup.configuration],
+        ['reporting', 'Reporting', byGroup.reporting],
       ].map(([key, label, n]) => `<button class="explorer-filter-btn ${filter === key ? 'active' : ''}" data-cust-filter="${key}">${label} (${n})</button>`).join('');
 
       tabsEl.querySelectorAll('.explorer-filter-btn').forEach((btn) => {
@@ -1567,36 +1664,45 @@
         });
       });
 
-      const filtered = cust.filter((c) => {
-        const cat = (c.category || '').toLowerCase();
+      const showSection = (sectionId) => {
         if (filter === 'all') return true;
-        if (filter === 'apex') return cat === 'apex';
-        if (filter === 'lwc') return cat === 'lwc';
-        if (filter === 'flow') return cat === 'flow';
-        if (filter === 'validation') return cat === 'validation';
-        if (filter === 'report') return cat === 'report';
-        return true;
-      });
+        return filter === sectionId;
+      };
 
-      content.innerHTML = filtered.map((c) => {
-        const refs = getReferencesForComponent(c);
-        const refTags = refs
-          ? refs.map((r) => `<span class="cust-ref-tag in-source">${escapeHtml(r)}</span>`).join('')
-          : '';
+      let html = '';
+      CUST_SECTION_DEFS.forEach((section) => {
+        const items = cust.filter((c) => section.types.includes(c.type));
+        if (items.length === 0) return;
+        const visible = showSection(section.id);
+        const collapsed = state.explorerCustSectionsCollapsed.has(section.id);
+        if (!visible) return;
 
-        const displayName = c.label || c.name || c.developerName || c.id;
-        return `
-          <div class="explorer-cust-card">
-            <div class="cust-card-name">${escapeHtml(displayName)}</div>
-            <div class="cust-card-meta">
-              <span class="cust-type-badge">${escapeHtml(c.type || c.category || '')}</span>
-              ${c.lineCount != null ? `<span>${c.lineCount} lines</span>` : ''}
-              <span>${formatDate(c.lastModified)}</span>
+        html += `
+          <div class="cust-section ${section.id} ${collapsed ? 'collapsed' : ''}" data-section="${section.id}">
+            <div class="cust-section-header">
+              <span class="cust-section-icon">${section.icon}</span>
+              <span>${section.label}</span>
+              <span class="cust-section-count">${items.length}</span>
+              <span class="cust-section-expand">&#9660;</span>
             </div>
-            ${refTags ? `<div class="cust-refs-row">${refTags}</div>` : ''}
+            <div class="cust-section-body">
+              ${items.map((c) => renderExplorerCustCard(c)).join('')}
+            </div>
           </div>
         `;
-      }).join('');
+      });
+
+      content.innerHTML = html || '<p style="color: var(--text-muted);">No customizations match the selected filter.</p>';
+
+      content.querySelectorAll('.cust-section-header').forEach((h) => {
+        h.addEventListener('click', () => {
+          const section = h.closest('.cust-section');
+          const id = section.dataset.section;
+          if (state.explorerCustSectionsCollapsed.has(id)) state.explorerCustSectionsCollapsed.delete(id);
+          else state.explorerCustSectionsCollapsed.add(id);
+          renderExplorerCustomizations();
+        });
+      });
     }
 
     function escapeHtml(str) {
@@ -2071,6 +2177,18 @@
       return null;
     }
 
+    function getRefPackageClass(ref) {
+      if (!ref || typeof ref !== 'string') return 'standard';
+      const parts = ref.split('__');
+      if (parts.length >= 2) {
+        const ns = (parts[0] || '').toLowerCase();
+        if (ns.includes('maicacare')) return 'maicacare';
+        if (ns.includes('maicabilling')) return 'maicabilling';
+        if (parts.length === 3 && ['c', 'r', 'f'].includes(parts[2])) return 'custom';
+      }
+      return 'standard';
+    }
+
     function buildReferenceLookups() {
       const inSource = new Set();
       const hasMapping = new Set();
@@ -2115,27 +2233,37 @@
         return;
       }
 
-      const byCategory = { all: cust.length, apex: 0, lwc: 0, flow: 0, validation: 0, report: 0 };
+      const byCategory = { all: cust.length, apex: 0, lwc: 0, aura: 0, flow: 0, validation: 0, permissions: 0, layouts: 0, customLabels: 0, report: 0 };
       cust.forEach((c) => {
         const cat = (c.category || '').toLowerCase();
+        const type = (c.type || '').toLowerCase();
         if (cat === 'apex') byCategory.apex++;
         else if (cat === 'lwc') byCategory.lwc++;
+        else if (cat === 'aura' || type.includes('aura')) byCategory.aura++;
         else if (cat === 'flow') byCategory.flow++;
         else if (cat === 'validation') byCategory.validation++;
+        else if (cat === 'permissions' || type.includes('permissionset')) byCategory.permissions++;
+        else if (cat === 'layouts' || type.includes('layout')) byCategory.layouts++;
+        else if (cat === 'custom labels' || type.includes('customlabel')) byCategory.customLabels++;
         else if (cat === 'report') byCategory.report++;
       });
 
       const lookups = buildReferenceLookups();
       const filter = state.customizationFilter;
 
-      tabsEl.innerHTML = [
+      const tabDefs = [
         ['all', 'All', byCategory.all],
         ['apex', 'Apex', byCategory.apex],
         ['lwc', 'LWC', byCategory.lwc],
+        ['aura', 'Aura', byCategory.aura],
         ['flow', 'Flow', byCategory.flow],
         ['validation', 'Validation', byCategory.validation],
+        ['permissions', 'Permissions', byCategory.permissions],
+        ['layouts', 'Layouts', byCategory.layouts],
+        ['customLabels', 'Custom Labels', byCategory.customLabels],
         ['report', 'Report', byCategory.report],
-      ].map(([key, label, n]) => `<button class="cust-tab ${filter === key ? 'active' : ''}" data-filter="${key}">${label} (${n})</button>`).join('');
+      ].filter(([, , n]) => n > 0);
+      tabsEl.innerHTML = tabDefs.map(([key, label, n]) => `<button class="cust-tab ${filter === key ? 'active' : ''}" data-filter="${key}">${label} (${n})</button>`).join('');
 
       tabsEl.querySelectorAll('.cust-tab').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -2146,11 +2274,16 @@
 
       const filtered = cust.filter((c) => {
         const cat = (c.category || '').toLowerCase();
+        const type = (c.type || '').toLowerCase();
         if (filter === 'all') return true;
         if (filter === 'apex') return cat === 'apex';
         if (filter === 'lwc') return cat === 'lwc';
+        if (filter === 'aura') return cat === 'aura' || type.includes('aura');
         if (filter === 'flow') return cat === 'flow';
         if (filter === 'validation') return cat === 'validation';
+        if (filter === 'permissions') return cat === 'permissions' || type.includes('permissionset');
+        if (filter === 'layouts') return cat === 'layouts' || type.includes('layout');
+        if (filter === 'customLabels') return cat === 'custom labels' || type.includes('customlabel');
         if (filter === 'report') return cat === 'report';
         return true;
       });
@@ -2238,13 +2371,18 @@
 
       const cust = state.customizations?.customizations || [];
       const selectedCust = cust.filter((c) => state.selectedCustomizations.has(c.id));
-      const byCat = { apex: 0, lwc: 0, flow: 0, validation: 0, report: 0 };
+      const byCat = { apex: 0, lwc: 0, aura: 0, flow: 0, validation: 0, permissions: 0, layouts: 0, customLabels: 0, report: 0 };
       selectedCust.forEach((c) => {
         const cat = (c.category || '').toLowerCase();
+        const type = (c.type || '').toLowerCase();
         if (cat === 'apex') byCat.apex++;
         else if (cat === 'lwc') byCat.lwc++;
+        else if (cat === 'aura' || type.includes('aura')) byCat.aura++;
         else if (cat === 'flow') byCat.flow++;
         else if (cat === 'validation') byCat.validation++;
+        else if (cat === 'permissions' || type.includes('permissionset')) byCat.permissions++;
+        else if (cat === 'layouts' || type.includes('layout')) byCat.layouts++;
+        else if (cat === 'custom labels' || type.includes('customlabel')) byCat.customLabels++;
         else if (cat === 'report') byCat.report++;
       });
 
@@ -2258,11 +2396,17 @@
         </div>
         <div class="review-summary-card">
           <h3>Customizations</h3>
-          <div class="review-summary-row"><span>Apex</span><span class="val">${byCat.apex}</span></div>
-          <div class="review-summary-row"><span>LWC</span><span class="val">${byCat.lwc}</span></div>
-          <div class="review-summary-row"><span>Flows</span><span class="val">${byCat.flow}</span></div>
-          <div class="review-summary-row"><span>Validation</span><span class="val">${byCat.validation}</span></div>
-          <div class="review-summary-row"><span>Reports</span><span class="val">${byCat.report}</span></div>
+          ${[
+            ['Apex', byCat.apex],
+            ['LWC', byCat.lwc],
+            ['Aura', byCat.aura],
+            ['Flows', byCat.flow],
+            ['Validation', byCat.validation],
+            ['Permissions', byCat.permissions],
+            ['Layouts', byCat.layouts],
+            ['Custom Labels', byCat.customLabels],
+            ['Reports', byCat.report],
+          ].filter(([, n]) => n > 0).map(([l, n]) => `<div class="review-summary-row"><span>${l}</span><span class="val">${n}</span></div>`).join('')}
           <div class="review-summary-row" style="border-top:1px solid var(--border);margin-top:0.5rem;padding-top:0.5rem;"><span>Total</span><span class="val">${selectedCust.length}</span></div>
         </div>
       `;

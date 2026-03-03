@@ -31,6 +31,10 @@ router.get(
       apexClasses: [],
       apexTriggers: [],
       lwcComponents: [],
+      auraComponents: [],
+      customLabels: [],
+      permissionSets: [],
+      layouts: [],
       flows: [],
       validationRules: [],
       reports: [],
@@ -102,7 +106,88 @@ router.get(
       console.warn('LightningComponentBundle query failed:', err.message);
     }
 
-    // 4. Flows (Active only, unmanaged)
+    // 4. Aura Components
+    try {
+      const r = await conn.tooling.query(
+        'SELECT Id, DeveloperName, MasterLabel, NamespacePrefix, LastModifiedDate FROM AuraDefinitionBundle WHERE NamespacePrefix = null ORDER BY DeveloperName'
+      );
+      raw.auraComponents = r.records || [];
+      for (const rec of raw.auraComponents) {
+        customizations.push({
+          id: rec.Id,
+          name: rec.DeveloperName,
+          label: rec.MasterLabel,
+          type: 'AuraDefinitionBundle',
+          category: 'Aura',
+          lastModified: rec.LastModifiedDate,
+        });
+      }
+    } catch (err) {
+      console.warn('AuraDefinitionBundle query failed:', err.message);
+    }
+
+    // 5. Custom Labels
+    try {
+      const r = await conn.tooling.query(
+        'SELECT Id, Name, Value, NamespacePrefix, LastModifiedDate FROM ExternalString WHERE NamespacePrefix = null ORDER BY Name'
+      );
+      raw.customLabels = r.records || [];
+      for (const rec of raw.customLabels) {
+        customizations.push({
+          id: rec.Id,
+          name: rec.Name,
+          type: 'CustomLabel',
+          category: 'Custom Labels',
+          value: rec.Value,
+          lastModified: rec.LastModifiedDate,
+        });
+      }
+    } catch (err) {
+      console.warn('ExternalString query failed:', err.message);
+    }
+
+    // 6. Permission Sets (custom, unmanaged)
+    try {
+      const r = await conn.query(
+        'SELECT Id, Name, Label, IsCustom, NamespacePrefix, LastModifiedDate FROM PermissionSet WHERE IsCustom = true AND NamespacePrefix = null ORDER BY Label'
+      );
+      raw.permissionSets = r.records || [];
+      for (const rec of raw.permissionSets) {
+        customizations.push({
+          id: rec.Id,
+          name: rec.Name,
+          label: rec.Label,
+          type: 'PermissionSet',
+          category: 'Permissions',
+          lastModified: rec.LastModifiedDate,
+        });
+      }
+    } catch (err) {
+      console.warn('PermissionSet query failed:', err.message);
+    }
+
+    // 7. Page Layouts (unmanaged)
+    try {
+      const r = await conn.tooling.query(
+        'SELECT Id, Name, EntityDefinition.QualifiedApiName, NamespacePrefix, LastModifiedDate FROM Layout WHERE NamespacePrefix = null ORDER BY Name'
+      );
+      raw.layouts = r.records || [];
+      for (const rec of raw.layouts) {
+        const targetObject = rec.EntityDefinition?.QualifiedApiName ?? rec.EntityDefinition?.DeveloperName ?? null;
+        customizations.push({
+          id: rec.Id,
+          name: rec.Name,
+          type: 'Layout',
+          category: 'Layouts',
+          targetObject,
+          lastModified: rec.LastModifiedDate,
+        });
+      }
+    } catch (err) {
+      console.warn('Layout query failed:', err.message);
+    }
+
+    // 8. Flows (Active only, unmanaged)
     try {
       const r = await conn.tooling.query(
         "SELECT Id, DeveloperName, MasterLabel, ProcessType, Status, LastModifiedDate FROM Flow WHERE Status = 'Active' AND ProcessType IN ('AutoLaunchedFlow', 'Flow', 'Workflow') AND NamespacePrefix = null ORDER BY MasterLabel"
@@ -123,7 +208,7 @@ router.get(
       console.warn('Flow query failed:', err.message);
     }
 
-    // 5. Validation Rules (Active only, unmanaged objects only)
+    // 9. Validation Rules (Active only, unmanaged objects only)
     try {
       const r = await conn.tooling.query(
         "SELECT Id, ValidationName, EntityDefinition.QualifiedApiName, Active, ErrorConditionFormula, ErrorMessage, LastModifiedDate FROM ValidationRule WHERE Active = true AND EntityDefinition.NamespacePrefix = null ORDER BY ValidationName"
@@ -149,7 +234,7 @@ router.get(
       console.warn('ValidationRule query failed:', err.message);
     }
 
-    // 6. Reports
+    // 10. Reports
     try {
       const r = await conn.query(
         'SELECT Id, Name, DeveloperName, Folder.Name, LastModifiedDate FROM Report WHERE IsDeleted = false ORDER BY Name LIMIT 200'
@@ -173,6 +258,10 @@ router.get(
     const byCategory = {
       apex: raw.apexClasses.length + raw.apexTriggers.length,
       lwc: raw.lwcComponents.length,
+      aura: raw.auraComponents.length,
+      customLabels: raw.customLabels.length,
+      permissions: raw.permissionSets.length,
+      layouts: raw.layouts.length,
       flows: raw.flows.length,
       validationRules: raw.validationRules.length,
       reports: raw.reports.length,
