@@ -1170,6 +1170,7 @@
       outline: none;
       border-color: var(--primary);
     }
+    .explorer-expand-actions { display: flex; gap: 0.5rem; margin-left: auto; }
     .explorer-filter-btns {
       display: flex;
       gap: 0.5rem;
@@ -1533,6 +1534,10 @@
             <button class="explorer-filter-btn" data-filter="maicacare">MaicaCare only</button>
             <button class="explorer-filter-btn" data-filter="maicabilling">MaicaBilling only</button>
             <button class="explorer-filter-btn" data-filter="unmanaged">Unmanaged only</button>
+          </div>
+          <div class="explorer-expand-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="dataModelExpandAll">Expand all</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="dataModelCollapseAll">Collapse all</button>
           </div>
         </div>
         <div class="explorer-loading" id="dataModelLoading" style="display: none;">
@@ -2180,6 +2185,15 @@
     });
     document.getElementById('dataModelRetry').addEventListener('click', () => loadExplorerDataModel());
     document.getElementById('customizationsRetry').addEventListener('click', () => loadExplorerCustomizations());
+    document.getElementById('dataModelExpandAll')?.addEventListener('click', () => {
+      const schema = state.explorerSchema;
+      if (schema?.objects) schema.objects.forEach((o) => state.explorerExpandedObjects.add(o.apiName));
+      renderExplorerDataModel();
+    });
+    document.getElementById('dataModelCollapseAll')?.addEventListener('click', () => {
+      state.explorerExpandedObjects.clear();
+      renderExplorerDataModel();
+    });
 
     document.getElementById('continueToMigrationPlan')?.addEventListener('click', () => goToStep(4));
     document.getElementById('migrationPlanTrigger')?.addEventListener('click', openMigrationPlanModal);
