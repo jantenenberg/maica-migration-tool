@@ -1453,6 +1453,7 @@
           </div>
         </div>
         <div class="map-header-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="downloadMappingMd" title="Export current mappings as mapping.md blueprint">Export mapping.md</button>
           <button type="button" class="btn btn-primary migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
           <button class="btn btn-primary" id="continueToMigrationPlan" title="">Continue to Migration Plan</button>
         </div>
@@ -2288,6 +2289,7 @@
       state.mapFieldsObjectSearch = e.target.value;
       renderMapFieldsStep();
     });
+    document.getElementById('downloadMappingMd')?.addEventListener('click', downloadMappingMd);
     document.getElementById('bulkNeedsToCreate')?.addEventListener('click', bulkMarkNeedsToCreate);
     document.getElementById('bulkNeedsToExclude')?.addEventListener('click', bulkMarkNeedsToExclude);
     document.getElementById('bulkApproveSuggested')?.addEventListener('click', bulkApproveSuggested);
@@ -2309,7 +2311,7 @@
       });
     });
 
-    function goToStep(step) {
+    async function goToStep(step) {
       state.currentStep = step;
       document.querySelectorAll('.step-content').forEach((c) => c.classList.remove('active'));
       const content = document.getElementById(`step${step}Content`);
@@ -2321,7 +2323,11 @@
         else if (s < step) el.classList.add('completed');
       });
       if (step === 1) render();
-      if (step === 3) renderMapFieldsStep();
+      if (step === 3) {
+        await loadAndApplyMappingBlueprint();
+        saveMigrationState();
+        renderMapFieldsStep();
+      }
       if (step === 4) renderMigrationPlanStep();
       if (step === 5) renderSchemaSummaryStep();
       if (step === 6) renderDataCountsStep();
@@ -2502,6 +2508,137 @@
       });
     }
 
+    /** Parse mapping.md content into { objects: Map, fields: Map<objectApiName, Map> } */
+    function parseMappingMd(md) {
+      const result = { objects: new Map(), fields: new Map() };
+      if (!md || typeof md !== 'string') return result;
+      const lines = md.split(/\r?\n/);
+      let section = null;
+      let currentObject = null;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('## Object Mappings')) {
+          section = 'objects';
+          currentObject = null;
+          continue;
+        }
+        if (trimmed.startsWith('## Field Mappings')) {
+          section = 'fields';
+          currentObject = null;
+          continue;
+        }
+        if (trimmed.startsWith('### ')) {
+          currentObject = trimmed.slice(4).trim();
+          if (section === 'fields' && currentObject) {
+            if (!result.fields.has(currentObject)) result.fields.set(currentObject, new Map());
+          }
+          continue;
+        }
+        const arrowIdx = trimmed.indexOf('→');
+        if (arrowIdx === -1) continue;
+        const left = trimmed.slice(0, arrowIdx).trim();
+        const right = trimmed.slice(arrowIdx + 1).trim();
+        if (!left || !right) continue;
+        if (section === 'objects') {
+          result.objects.set(left, right);
+        } else if (section === 'fields' && currentObject) {
+          const objFields = result.fields.get(currentObject);
+          if (objFields) objFields.set(left, right);
+        }
+      }
+      return result;
+    }
+
+    /** Apply mapping blueprint from mapping.md to state.objectMappings. Resolves targets from schema. */
+    function applyMappingBlueprint(blueprint) {
+      if (!blueprint?.objects?.size || !state.sourceSchema || !state.targetSchema) return false;
+      const targetByApiName = new Map((state.targetSchema.objects || []).map((o) => [o.apiName, o]));
+      let applied = 0;
+      (state.objectMappings || []).forEach((om) => {
+        const srcApi = om.source?.apiName;
+        if (!srcApi) return;
+        const tgtApi = blueprint.objects.get(srcApi);
+        if (!tgtApi) return;
+        const targetObj = targetByApiName.get(tgtApi);
+        if (!targetObj) return;
+        om.target = targetObj;
+        om.objectMatchType = getObjectMatchType(om.source, targetObj);
+        om.objectAction = 'map';
+        const fieldMap = blueprint.fields.get(srcApi);
+        if (fieldMap?.size && om.fieldMappings) {
+          const targetFieldsByApiName = new Map((targetObj.fields || []).map((f) => [f.apiName, f]));
+          om.fieldMappings.forEach((fm) => {
+            const tgtFieldApi = fieldMap.get(fm.source?.apiName);
+            if (tgtFieldApi) {
+              const targetField = targetFieldsByApiName.get(tgtFieldApi);
+              if (targetField) {
+                fm.target = targetField;
+                fm.action = 'map';
+                fm.confidence = fm.target.type === fm.source?.type ? 'EXACT' : 'HIGH';
+              }
+            }
+          });
+        } else {
+          om.fieldMappings = autoMapFields(om.source, targetObj);
+        }
+        applied++;
+      });
+      return applied > 0;
+    }
+
+    /** Fetch mapping.md and apply as blueprint. Returns true if applied. */
+    async function loadAndApplyMappingBlueprint() {
+      try {
+        const res = await fetch('/mapping.md', { cache: 'no-store' });
+        if (!res.ok) return false;
+        const md = await res.text();
+        const blueprint = parseMappingMd(md);
+        if (blueprint.objects.size === 0) return false;
+        const applied = applyMappingBlueprint(blueprint);
+        if (applied) showToast('Loaded mapping blueprint from mapping.md', 'success');
+        return applied;
+      } catch (_) { return false; }
+    }
+
+    /** Generate mapping.md content from current object mappings. */
+    function exportMappingMd() {
+      const lines = ['# Maica Migration Mapping', '', '## Object Mappings', ''];
+      const fieldSections = [];
+      (state.objectMappings || []).forEach((om) => {
+        if (om.objectAction === 'exclude') return;
+        const srcApi = om.source?.apiName;
+        const tgtApi = om.target?.apiName;
+        if (!srcApi || !tgtApi) return;
+        lines.push(`${srcApi} → ${tgtApi}`);
+        const fms = (om.fieldMappings || []).filter((fm) => fm.action === 'map' && fm.target?.apiName);
+        if (fms.length > 0) {
+          fieldSections.push({ object: srcApi, mappings: fms.map((fm) => `${fm.source?.apiName} → ${fm.target?.apiName}`) });
+        }
+      });
+      lines.push('', '## Field Mappings', '');
+      fieldSections.forEach(({ object, mappings }) => {
+        lines.push(`### ${object}`);
+        mappings.forEach((m) => lines.push(m));
+        lines.push('');
+      });
+      return lines.join('\n');
+    }
+
+    function downloadMappingMd() {
+      const md = exportMappingMd();
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mapping.md';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Downloaded mapping.md', 'success');
+    }
+
     async function runDiscovery() {
       hideDiscoveryError();
       updateProgress(0, 'Retrieving source org metadata...', 0, 0);
@@ -2545,6 +2682,8 @@
           ((a.label || a.apiName || '').toLowerCase()).localeCompare((b.label || b.apiName || '').toLowerCase())
         );
         updateProgress(95, 'Analyzing schemas...', totalObj, totalFields);
+
+        await loadAndApplyMappingBlueprint();
 
         updateProgress(100, 'Discovery complete!', totalObj, totalFields);
 
