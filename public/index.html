@@ -248,6 +248,7 @@
     .btn-primary {
       background: var(--primary);
       color: #fff;
+      border: 1px solid transparent;
     }
     .btn-primary:hover {
       background: var(--primary-hover);
@@ -671,6 +672,8 @@
       padding: 0.25rem;
     }
     .modal-close:hover { color: #fff; }
+    .modal-header-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.85rem; }
     .modal-body {
       padding: 1.5rem;
       overflow-y: auto;
@@ -737,8 +740,11 @@
     .map-header-actions {
       display: flex;
       gap: 0.5rem;
-      align-items: center;
+      align-items: stretch;
       flex-shrink: 0;
+    }
+    .map-header-actions .btn {
+      min-height: 2.75rem;
     }
     .map-header h2 { margin: 0; font-size: 1.5rem; color: #fff; }
     .map-header .subtitle { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
@@ -2086,23 +2092,27 @@
     document.getElementById('continueToCustomizations')?.addEventListener('click', () => goToStep(4));
     document.getElementById('migrationPlanTrigger')?.addEventListener('click', openMigrationPlanModal);
     document.getElementById('migrationPlanTriggerHeader')?.addEventListener('click', openMigrationPlanModal);
-    document.getElementById('migrationPlanModalClose')?.addEventListener('click', () => {
+    function closeMigrationPlanModal() {
       const modal = document.getElementById('migrationPlanModal');
       if (modal) { modal.style.display = 'none'; modal.setAttribute('aria-hidden', 'true'); }
-    });
+    }
     document.getElementById('migrationPlanModal')?.addEventListener('click', (e) => {
       if (e.target.id === 'migrationPlanModal') {
-        e.target.style.display = 'none';
-        e.target.setAttribute('aria-hidden', 'true');
+        closeMigrationPlanModal();
+      } else if (e.target.closest?.('#migrationPlanModalClose') || e.target.closest?.('[data-close-migration-modal]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMigrationPlanModal();
       }
+    });
+    document.getElementById('migrationPlanDownload')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadMigrationPlan();
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const modal = document.getElementById('migrationPlanModal');
-        if (modal?.style.display === 'flex') {
-          modal.style.display = 'none';
-          modal.setAttribute('aria-hidden', 'true');
-        }
+        if (modal?.style.display === 'flex') closeMigrationPlanModal();
       }
     });
     document.getElementById('mapObjSearch')?.addEventListener('input', (e) => {
@@ -2457,6 +2467,55 @@
       renderMigrationPlan();
       const modal = document.getElementById('migrationPlanModal');
       if (modal) { modal.style.display = 'flex'; modal.setAttribute('aria-hidden', 'false'); }
+    }
+
+    function getMigrationPlanText() {
+      const byCategory = { fully: [], partial: [], create: [], excluded: [], needs: [] };
+      state.objectMappings.forEach((om) => {
+        const status = getObjectPlanStatus(om);
+        const cat = status.key === 'excluded' ? 'excluded' : status.key === 'create' ? 'create' : status.key === 'needs' ? 'needs' : status.key === 'partial' ? 'partial' : 'fully';
+        byCategory[cat].push({ om, status });
+      });
+      const categoryDefs = [
+        ['fully', 'Fully mapped', 'Object and all fields exist in both orgs. Will migrate with namespace replacement only.'],
+        ['partial', 'Partially mapped', 'Object exists in both orgs; some fields will be created.'],
+        ['create', 'Create as new', 'Object does not exist in target. Object and all fields will be created.'],
+        ['excluded', 'Excluded', 'Excluded from migration.'],
+        ['needs', 'Needs attention', 'Requires mapping before continuing.'],
+      ];
+      let lines = ['MIGRATION PLAN', '================', ''];
+      categoryDefs.forEach(([key, title, desc]) => {
+        const items = byCategory[key] || [];
+        if (items.length === 0) return;
+        lines.push(`${title} (${items.length})`);
+        lines.push(desc);
+        lines.push('');
+        items.forEach(({ om, status }) => {
+          const src = om.source;
+          const tgt = om.target;
+          const srcLabel = src?.label || src?.apiName || '';
+          const srcApi = src?.apiName || '';
+          const tgtLabel = tgt ? (tgt.label || tgt.apiName) : '—';
+          lines.push(`  ${srcLabel} (${srcApi}) → ${tgtLabel} [${status.label}]`);
+          (om.fieldMappings || []).forEach((fm) => {
+            const fs = getFieldStatus(fm);
+            lines.push(`    - ${fm.source?.apiName || ''} [${fs.label}]`);
+          });
+          lines.push('');
+        });
+      });
+      return lines.join('\n');
+    }
+
+    function downloadMigrationPlan() {
+      const text = getMigrationPlanText();
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `migration-plan-${new Date().toISOString().slice(0, 10)}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     function getObjectPlanStatus(om) {
@@ -3171,7 +3230,10 @@
     <div class="modal-dialog migration-plan-modal">
       <div class="modal-header">
         <h2>Migration Plan</h2>
-        <button type="button" class="modal-close" id="migrationPlanModalClose" aria-label="Close">&times;</button>
+        <div class="modal-header-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="migrationPlanDownload">Download as .txt</button>
+          <button type="button" class="modal-close" id="migrationPlanModalClose" data-close-migration-modal aria-label="Close">&times;</button>
+        </div>
       </div>
       <div class="modal-body" id="migrationPlanContent"></div>
     </div>
