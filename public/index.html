@@ -525,9 +525,12 @@
     }
     .map-obj-summary .map-obj-stat { color: var(--text-muted); }
     .map-obj-summary .map-obj-stat strong { font-family: 'JetBrains Mono', monospace; }
-    .map-obj-summary .map-obj-stat.mapped strong { color: #22c55e; }
+    .map-obj-summary .map-obj-stat.fully_mapped strong { color: #22c55e; }
+    .map-obj-summary .map-obj-stat.suggested strong { color: #eab308; }
+    .map-obj-summary .map-obj-stat.partially_mapped strong { color: #38bdf8; }
+    .map-obj-summary .map-obj-stat.partially_suggested strong { color: #fbbf24; }
+    .map-obj-summary .map-obj-stat.not_mapped strong { color: #94a3b8; }
     .map-obj-summary .map-obj-stat.create strong { color: #eab308; }
-    .map-obj-summary .map-obj-stat.needs strong { color: #ef4444; }
     .map-obj-summary .map-obj-stat.excluded strong { color: var(--text-muted); }
     .map-obj-filters {
       display: flex;
@@ -559,6 +562,7 @@
     .progress-log-entry { margin-bottom: 0.35rem; color: var(--text-muted); }
     .progress-log-entry.success { color: var(--success); }
     .progress-log-entry.error { color: var(--error); }
+    .progress-log-entry.skipped { color: var(--warning, #eab308); }
     .migration-plan-confirm-card ul { margin: 0.5rem 0 1rem 1.5rem; padding: 0; }
     .migration-plan-confirm-card li { margin-bottom: 0.35rem; }
     .migration-plan-step-summary { margin-bottom: 1.5rem; }
@@ -803,6 +807,33 @@
     }
     .map-header h2 { margin: 0; font-size: 1.5rem; color: #fff; }
     .map-header .subtitle { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
+    .mapping-rules-tooltip { position: relative; display: inline-block; margin-top: 0.5rem; }
+    .mapping-rules-trigger { font-size: 0.85rem; padding: 0.25rem 0.5rem; }
+    .mapping-rules-popover {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 0.5rem;
+      padding: 1rem 1.25rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 100;
+      max-width: 420px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .mapping-rules-popover.visible { display: block; }
+    .mapping-rules-popover h4 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .mapping-rules-popover ul { margin: 0; padding-left: 1.25rem; }
+    .mapping-rules-popover li { margin-bottom: 0.5rem; }
+    .map-obj-status.fully_mapped { color: var(--success); }
+    .map-obj-status.suggested { color: var(--warning, #eab308); }
+    .map-obj-status.partially_mapped { color: #38bdf8; }
+    .map-obj-status.partially_suggested { color: #fbbf24; }
+    .map-obj-status.not_mapped { color: var(--text-muted); }
     .stats-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -894,6 +925,7 @@
     .conf-badge.medium { background: #422006; color: #eab308; }
     .conf-badge.low { background: #431407; color: #f97316; }
     .conf-badge.none { background: #450a0a; color: #ef4444; }
+    .conf-badge.suggested { background: #422006; color: #eab308; }
     .obj-card-body { display: none; padding: 1rem 1.25rem; }
     .obj-card.expanded .obj-card-body { display: block; }
     .field-table {
@@ -1408,6 +1440,19 @@
         <div>
           <h2>Object &amp; Field Mapping</h2>
           <p class="subtitle">Map source objects to target objects, then configure field mappings.</p>
+          <div class="mapping-rules-tooltip" title="Mapping rules">
+            <button type="button" class="btn btn-ghost btn-sm mapping-rules-trigger" id="mappingRulesTrigger" aria-label="View mapping rules">ℹ️ Mapping rules</button>
+            <div class="mapping-rules-popover" id="mappingRulesPopover">
+              <h4>Mapping Rules</h4>
+              <ul>
+                <li><strong>Fully Mapped</strong> — The object and all fields exist in the target org with the same name (including API name). The target object is auto-selected.</li>
+                <li><strong>Suggested</strong> — We found a target object that likely maps to the source (e.g. maica_connection__c → cc_connection__c). The candidate is auto-selected but shown as suggested.</li>
+                <li><strong>Partially Mapped</strong> — Fully mapped object but some fields are missing in the target.</li>
+                <li><strong>Partially Suggested</strong> — Suggested object but some fields are missing in the target.</li>
+                <li><strong>Not Mapped</strong> — No matching object found in the target org.</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <div class="map-header-actions">
           <button type="button" class="btn btn-primary migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
@@ -1420,8 +1465,8 @@
           <input type="text" class="map-obj-search" id="mapObjSearch" placeholder="Search objects..." />
           <div class="explorer-filter-btns" id="mapObjFilterTabs"></div>
           <div class="map-bulk-actions">
-            <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToCreate">Mark all Needs Mapping → Create</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToExclude">Mark all Needs Mapping → Exclude</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToCreate">Mark all Not Mapped → Create</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToExclude">Mark all Not Mapped → Exclude</button>
           </div>
         </div>
         <div class="stats-bar" id="statsBar">
@@ -2207,6 +2252,16 @@
     document.getElementById('continueToMigrationPlan')?.addEventListener('click', () => goToStep(4));
     document.getElementById('migrationPlanTrigger')?.addEventListener('click', openMigrationPlanModal);
     document.getElementById('migrationPlanTriggerHeader')?.addEventListener('click', openMigrationPlanModal);
+    document.getElementById('mappingRulesTrigger')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const pop = document.getElementById('mappingRulesPopover');
+      if (pop) pop.classList.toggle('visible');
+    });
+    document.addEventListener('click', (e) => {
+      const tooltip = document.querySelector('.mapping-rules-tooltip');
+      if (tooltip && tooltip.contains(e.target)) return;
+      document.getElementById('mappingRulesPopover')?.classList.remove('visible');
+    });
     function closeMigrationPlanModal() {
       const modal = document.getElementById('migrationPlanModal');
       if (modal) { modal.style.display = 'none'; modal.setAttribute('aria-hidden', 'true'); }
@@ -2349,6 +2404,14 @@
       });
     }
 
+    function getObjectMatchType(srcObj, tgtObj) {
+      if (!srcObj || !tgtObj) return null;
+      const srcStripped = stripNamespace(srcObj.apiName);
+      const tgtStripped = stripNamespace(tgtObj.apiName);
+      if (srcStripped === tgtStripped) return 'exact';
+      return 'suggested';
+    }
+
     function autoMapObjects(sourceSchema, targetSchema) {
       const sourceObjects = sourceSchema?.objects || [];
       const targetObjects = targetSchema?.objects || [];
@@ -2365,14 +2428,14 @@
         const targetByLabelMatch = targetByLabel.get((srcObj.label || '').toLowerCase());
 
         let targetObj = null;
-        let confidence = 'NONE';
+        let objectMatchType = null;
 
         if (targetByStrippedMatch) {
           targetObj = targetByStrippedMatch;
-          confidence = (targetObj.label || '').toLowerCase() === (srcObj.label || '').toLowerCase() ? 'EXACT' : 'HIGH';
+          objectMatchType = 'exact';
         } else if (targetByLabelMatch) {
           targetObj = targetByLabelMatch;
-          confidence = 'MEDIUM';
+          objectMatchType = 'suggested';
         }
 
         const fieldMappings = autoMapFields(srcObj, targetObj);
@@ -2380,7 +2443,7 @@
         return {
           source: srcObj,
           target: targetObj,
-          confidence,
+          objectMatchType,
           fieldMappings,
           objectAction: targetObj ? 'map' : undefined,
         };
@@ -2449,7 +2512,7 @@
       let objectsChanged = 0, fieldsChanged = 0;
       state.objectMappings.forEach((om) => {
         const objStatus = getObjectMappingStatus(om);
-        if (objStatus.class === 'needs') {
+        if (objStatus.class === 'not_mapped') {
           om.objectAction = 'exclude';
           om.target = null;
           objectsChanged++;
@@ -2484,7 +2547,7 @@
       let objectsChanged = 0, fieldsChanged = 0;
       state.objectMappings.forEach((om) => {
         const objStatus = getObjectMappingStatus(om);
-        if (objStatus.class === 'needs') {
+        if (objStatus.class === 'not_mapped') {
           om.objectAction = 'create';
           om.target = null;
           objectsChanged++;
@@ -2556,8 +2619,17 @@
       const action = om.objectAction;
       if (action === 'exclude') return { label: 'Excluded', class: 'excluded' };
       if (action === 'create') return { label: 'Create New', class: 'create' };
-      if (om.target) return { label: 'Mapped', class: 'mapped' };
-      return { label: 'Needs Mapping', class: 'needs' };
+      if (!om.target) return { label: 'Not Mapped', class: 'not_mapped' };
+      const fms = om.fieldMappings || [];
+      const needsCount = fms.filter((fm) => getFieldStatus(fm).class === 'needs').length;
+      const createCount = fms.filter((fm) => fm.action === 'create').length;
+      const hasMissingFields = needsCount > 0 || createCount > 0;
+      const matchType = om.objectMatchType || getObjectMatchType(om.source, om.target);
+      if (matchType === 'exact' && !hasMissingFields) return { label: 'Fully Mapped', class: 'fully_mapped' };
+      if (matchType === 'exact' && hasMissingFields) return { label: 'Partially Mapped', class: 'partially_mapped' };
+      if (matchType === 'suggested' && !hasMissingFields) return { label: 'Suggested', class: 'suggested' };
+      if (matchType === 'suggested' && hasMissingFields) return { label: 'Partially Suggested', class: 'partially_suggested' };
+      return { label: 'Mapped', class: 'mapped' };
     }
 
     function onObjectMappingChange(objIdx, value) {
@@ -2589,6 +2661,7 @@
         if (targetObj) {
           om.objectAction = 'map';
           om.target = targetObj;
+          om.objectMatchType = getObjectMatchType(om.source, targetObj);
           om.fieldMappings = autoMapFields(om.source, targetObj);
         }
       }
@@ -2635,7 +2708,7 @@
       state.objectMappings.forEach((om) => {
         if (om.objectAction === 'exclude') return; // Excluded objects and their fields are skipped
         const objStatus = getObjectMappingStatus(om);
-        if (objStatus.class === 'needs') objectsNeeds++;
+        if (objStatus.class === 'not_mapped') objectsNeeds++;
         if (om.objectAction === 'map' && om.target) {
           (om.fieldMappings || []).forEach((fm) => {
             const fs = getFieldStatus(fm);
@@ -2840,35 +2913,41 @@
       if (filter !== 'all') {
         filtered = filtered.filter(({ om }) => {
           const status = getObjectMappingStatus(om);
-          if (filter === 'mapped') return status.class === 'mapped';
-          if (filter === 'needs') return status.class === 'needs';
+          if (filter === 'fully_mapped') return status.class === 'fully_mapped';
+          if (filter === 'suggested') return status.class === 'suggested';
+          if (filter === 'partially_mapped') return status.class === 'partially_mapped';
+          if (filter === 'partially_suggested') return status.class === 'partially_suggested';
+          if (filter === 'not_mapped') return status.class === 'not_mapped';
           if (filter === 'create') return status.class === 'create';
           if (filter === 'excluded') return status.class === 'excluded';
           return true;
         });
       }
 
-      const counts = { all: state.objectMappings.length, mapped: 0, needs: 0, create: 0, excluded: 0 };
+      const counts = { all: state.objectMappings.length, fully_mapped: 0, suggested: 0, partially_mapped: 0, partially_suggested: 0, not_mapped: 0, create: 0, excluded: 0 };
       state.objectMappings.forEach((om) => {
         const s = getObjectMappingStatus(om);
-        if (s.class === 'mapped') counts.mapped++;
-        else if (s.class === 'needs') counts.needs++;
-        else if (s.class === 'create') counts.create++;
-        else if (s.class === 'excluded') counts.excluded++;
+        if (s.class in counts) counts[s.class]++;
       });
 
       document.getElementById('mapObjSummary').innerHTML = `
-        <span class="map-obj-stat">Total Objects: <strong>${counts.all}</strong></span>
-        <span class="map-obj-stat mapped">Mapped: <strong>${counts.mapped}</strong></span>
+        <span class="map-obj-stat">Total: <strong>${counts.all}</strong></span>
+        <span class="map-obj-stat fully_mapped">Fully Mapped: <strong>${counts.fully_mapped}</strong></span>
+        <span class="map-obj-stat suggested">Suggested: <strong>${counts.suggested}</strong></span>
+        <span class="map-obj-stat partially_mapped">Partially Mapped: <strong>${counts.partially_mapped}</strong></span>
+        <span class="map-obj-stat partially_suggested">Partially Suggested: <strong>${counts.partially_suggested}</strong></span>
+        <span class="map-obj-stat not_mapped">Not Mapped: <strong>${counts.not_mapped}</strong></span>
         <span class="map-obj-stat create">Create New: <strong>${counts.create}</strong></span>
-        <span class="map-obj-stat needs">Needs Mapping: <strong>${counts.needs}</strong></span>
         <span class="map-obj-stat excluded">Excluded: <strong>${counts.excluded}</strong></span>
       `;
 
       document.getElementById('mapObjFilterTabs').innerHTML = [
         ['all', 'All', counts.all],
-        ['mapped', 'Mapped', counts.mapped],
-        ['needs', 'Needs Mapping', counts.needs],
+        ['fully_mapped', 'Fully Mapped', counts.fully_mapped],
+        ['suggested', 'Suggested', counts.suggested],
+        ['partially_mapped', 'Partially Mapped', counts.partially_mapped],
+        ['partially_suggested', 'Partially Suggested', counts.partially_suggested],
+        ['not_mapped', 'Not Mapped', counts.not_mapped],
         ['create', 'Create New', counts.create],
         ['excluded', 'Excluded', counts.excluded],
       ].map(([key, label, n]) => `<button class="explorer-filter-btn ${filter === key ? 'active' : ''}" data-map-filter="${key}">${label} (${n})</button>`).join('');
@@ -2906,8 +2985,8 @@
           fieldsDisplay = `<span class="map-obj-fields-link" data-obj-idx="${objIdx}">${mappedCount} / ${totalFields} mapped</span>`;
         }
 
-        const confBadge = om.target && om.confidence && om.confidence !== 'NONE'
-          ? `<span class="conf-badge ${confClass(om.confidence)}" style="margin-left:0.5rem;">${escapeHtml(om.confidence)}</span>`
+        const suggestedBadge = om.target && (om.objectMatchType || getObjectMatchType(om.source, om.target)) === 'suggested'
+          ? `<span class="conf-badge suggested" style="margin-left:0.5rem;">Suggested</span>`
           : '';
 
         return `
@@ -2924,7 +3003,7 @@
                 <option value="__exclude__" ${selectedValue === '__exclude__' ? 'selected' : ''}>⏭️ Exclude from Migration</option>
                 <optgroup label="Target Objects">${targetOptions}</optgroup>
               </select>
-              ${confBadge}
+              ${suggestedBadge}
             </td>
             <td><span class="map-obj-status ${status.class}">${escapeHtml(status.label)}</span></td>
             <td>${fieldsDisplay}</td>
@@ -3205,14 +3284,25 @@
         `;
       }
       if (actionsEl) actionsEl.style.display = 'flex';
+      const hasWorkToDo = summary.objectsToCreate > 0 || summary.fieldsToCreate > 0;
       content.innerHTML = `
         <div class="migration-plan-confirm-card" id="executeMigrationCard">
-          <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
-          <ul>
-            <li>New objects and fields will be visible to System Administrator profile by default</li>
-            <li>Field types, picklist values, and validation rules will match the source</li>
-          </ul>
-          <button class="btn btn-primary" id="executeMigrationPlan">Execute Migration Plan</button>
+          ${hasWorkToDo ? `
+            <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
+            <ul>
+              <li>New objects and fields will be visible to System Administrator profile by default</li>
+              <li>Field types, picklist values, and validation rules will match the source</li>
+              <li>Objects and fields that already exist in the target will be skipped</li>
+            </ul>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem;">
+              <button class="btn btn-primary" id="executeMigrationPlan">Execute Migration Plan</button>
+              <button class="btn btn-outline" id="continueToDataCountsFromPlan">Skip to Data Counts</button>
+            </div>
+          ` : `
+            <p><strong>Nothing to create.</strong> All objects and fields already exist in the target or are mapped to existing ones.</p>
+            <p>Proceed to Data Counts to see record counts and continue with data migration.</p>
+            <button class="btn btn-primary" id="continueToDataCountsFromPlan" style="margin-top:0.75rem;">Continue to Data Counts</button>
+          `}
         </div>
         <div class="migration-plan-confirm-card" id="executeMigrationProgress" style="display: none;">
           <h3>Migration in progress</h3>
@@ -3224,6 +3314,7 @@
         </div>
       `;
       document.getElementById('executeMigrationPlan')?.addEventListener('click', executeMigrationPlan);
+      document.getElementById('continueToDataCountsFromPlan')?.addEventListener('click', () => goToStep(6));
     }
 
     async function executeMigrationPlan() {
@@ -3259,6 +3350,7 @@
             objectMappings: state.objectMappings,
             sourceSchema: state.sourceSchema,
             targetSchema: state.targetSchema,
+            namespaceReplacement: state.namespaceReplacement,
           }),
         });
 
@@ -3296,7 +3388,8 @@
               } else if (ev.type === 'progress') {
                 if (ev.percent != null && progressBar) progressBar.style.width = ev.percent + '%';
                 if (ev.message && progressMsg) progressMsg.textContent = ev.message;
-                addLog(ev.message, ev.error ? 'error' : (ev.message && ev.message.startsWith('Created') ? 'success' : ''));
+                const logClass = ev.error ? 'error' : ev.skipped ? 'skipped' : (ev.message && ev.message.startsWith('Created') ? 'success' : '');
+                addLog(ev.message, logClass);
               } else if (ev.type === 'complete') {
                 result = { status: 'complete', ...ev };
                 if (progressBar) progressBar.style.width = '100%';
@@ -3345,15 +3438,24 @@
       if (!el) return;
       const result = state.migrationResult || {};
       const objs = result.objectsCreated ?? 0;
+      const objsSkipped = result.objectsSkipped ?? 0;
       const flds = result.fieldsCreated ?? 0;
+      const fldsSkipped = result.fieldsSkipped ?? 0;
+      const stats = [
+        ['Objects created', objs],
+        ['Objects skipped (already exist)', objsSkipped],
+        ['Fields created', flds],
+        ['Fields skipped (already exist)', fldsSkipped],
+      ].filter(([, v]) => v > 0);
       el.innerHTML = `
         <div class="migration-plan-confirm-card">
           <h3>Schema migration complete</h3>
-          <p>Objects and fields have been created in the target org.</p>
-          <div class="migration-plan-summary-stats" style="margin-top:1rem;">
-            <div class="migration-plan-stat"><span class="val">${objs}</span><span class="label">Objects created</span></div>
-            <div class="migration-plan-stat"><span class="val">${flds}</span><span class="label">Fields created</span></div>
-          </div>
+          <p>${result.message || 'Objects and fields have been created in the target org.'}</p>
+          ${stats.length ? `
+            <div class="migration-plan-summary-stats" style="margin-top:1rem;">
+              ${stats.map(([label, val]) => `<div class="migration-plan-stat"><span class="val">${val}</span><span class="label">${label}</span></div>`).join('')}
+            </div>
+          ` : ''}
           <pre style="background:var(--bg);padding:1rem;border-radius:8px;overflow:auto;font-size:0.85rem;margin-top:1rem;">${escapeHtml(JSON.stringify(result, null, 2))}</pre>
         </div>
       `;
@@ -3368,26 +3470,117 @@
     function renderDataCountsStep() {
       const el = document.getElementById('dataCountsContent');
       if (!el) return;
+      const objectsToMigrate = (state.objectMappings || []).filter(
+        (om) => om.objectAction === 'create' || (om.objectAction === 'map' && om.target)
+      );
+      const sourceObjectNames = objectsToMigrate.map((om) => om.source?.apiName).filter(Boolean);
+
       el.innerHTML = `
         <div class="migration-plan-confirm-card">
           <p>Loading record counts from source org...</p>
         </div>
       `;
-      fetch('/api/source/record-counts', { credentials: 'include' })
-        .then((r) => r.ok ? r.json() : Promise.reject(new Error('Failed to load counts')))
-        .then((counts) => {
-          state.recordCounts = counts;
-          const rows = (counts.objects || []).map((o) => `<tr><td>${escapeHtml(o.apiName || '')}</td><td>${o.count ?? '—'}</td></tr>`).join('');
+
+      const loadCounts = () => {
+        if (!sourceObjectNames.length) {
+          el.innerHTML = `
+            <div class="migration-plan-confirm-card">
+              <p>No objects selected for migration. All objects are excluded.</p>
+              <p>Go back to Map Fields to include objects for data migration.</p>
+            </div>
+          `;
+          return;
+        }
+        return fetch('/api/source/record-counts?objects=' + encodeURIComponent(JSON.stringify(sourceObjectNames)), {
+          credentials: 'include',
+        })
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load counts'))))
+          .then((counts) => {
+            state.recordCounts = counts;
+            return counts;
+          });
+      };
+
+      const loadTargetSchema = () =>
+        fetch('/api/target/schema', { credentials: 'include' })
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load target schema'))))
+          .then((schema) => {
+            state.targetSchema = schema;
+            return schema;
+          });
+
+      const validateTargetFields = () => {
+        const targetObjects = (state.targetSchema?.objects || []).reduce((m, o) => {
+          m[o.apiName] = new Set((o.fields || []).map((f) => f.apiName));
+          return m;
+        }, {});
+        const missing = [];
+        const nr = state.namespaceReplacement;
+        const applyNs = (name) => {
+          if (!name || !nr?.source || !nr?.target) return name;
+          if (name.startsWith(nr.source + '__')) return nr.target + '__' + name.slice(nr.source.length + 2);
+          return name;
+        };
+        objectsToMigrate.forEach((om) => {
+          const targetObjName = om.objectAction === 'create' ? applyNs(om.source?.apiName || '') : om.target?.apiName;
+          const targetFields = targetObjects[targetObjName];
+          if (!targetFields) {
+            missing.push({ object: targetObjName, field: null, msg: `Object ${targetObjName} not found in target` });
+            return;
+          }
+          (om.fieldMappings || []).forEach((fm) => {
+            let targetFieldName;
+            if (fm.action === 'map' && fm.target) {
+              targetFieldName = fm.target.apiName;
+            } else if (fm.action === 'create' && fm.source) {
+              targetFieldName = applyNs(fm.source.apiName);
+            } else return;
+            if (!targetFields.has(targetFieldName)) {
+              missing.push({ object: targetObjName, field: targetFieldName, msg: `${targetObjName}.${targetFieldName} missing in target` });
+            }
+          });
+        });
+        return missing;
+      };
+
+      Promise.all([loadCounts(), loadTargetSchema().catch(() => null)])
+        .then(([counts, _schema]) => {
+          if (!counts) return;
+          const missing = validateTargetFields();
+          const rows = (counts.objects || []).map(
+            (o) => `<tr><td>${escapeHtml(o.apiName || '')}</td><td>${o.count ?? '—'}</td></tr>`
+          ).join('');
+          let validationHtml = '';
+          if (missing.length > 0) {
+            validationHtml = `
+              <div class="migration-plan-confirm-card" style="border-left-color:#eab308;margin-top:1rem;">
+                <h4>Target field validation</h4>
+                <p><strong>${missing.length} target field(s) may not exist.</strong> Verify before migrating data:</p>
+                <ul style="margin:0.5rem 0 0 1rem;font-size:0.9rem;">
+                  ${missing.map((m) => `<li>${escapeHtml(m.msg)}</li>`).join('')}
+                </ul>
+                <p style="margin-top:0.5rem;font-size:0.85rem;">Consider re-running schema discovery to refresh target schema, or ensure fields exist in the target org.</p>
+              </div>
+            `;
+          } else {
+            validationHtml = `
+              <div class="migration-plan-confirm-card" style="border-left-color:#22c55e;margin-top:1rem;">
+                <p><strong>Target fields validated.</strong> All mapped fields exist in the target org.</p>
+              </div>
+            `;
+          }
           el.innerHTML = `
             <div class="map-obj-table-wrap">
               <table class="map-obj-table">
-                <thead><tr><th>Object</th><th>Record Count</th></tr></thead>
+                <thead><tr><th>Object</th><th>Records to migrate</th></tr></thead>
                 <tbody>${rows || '<tr><td colspan="2">No data</td></tr>'}</tbody>
               </table>
             </div>
+            ${validationHtml}
           `;
         })
         .catch((err) => {
+          if (!sourceObjectNames.length) return;
           el.innerHTML = `<div class="migration-plan-confirm-card" style="border-left-color:#ef4444;"><p>${escapeHtml(err.message)}</p></div>`;
         });
     }

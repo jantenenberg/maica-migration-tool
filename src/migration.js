@@ -14,6 +14,18 @@ function getErrorMessage(err) {
   return String(err);
 }
 
+/** Check if error indicates object/field already exists (safe to skip) */
+function isAlreadyExistsError(err) {
+  const msg = (getErrorMessage(err) || '').toLowerCase();
+  return (
+    msg.includes('already in use') ||
+    msg.includes('already exists') ||
+    msg.includes('duplicate value') ||
+    msg.includes('duplicate developer name') ||
+    msg.includes('entity of type customobject named')
+  );
+}
+
 /**
  * Apply optional namespace replacement to an API name.
  * e.g. MaicaCare__Client__c -> Maica__Client__c when { source: 'MaicaCare', target: 'Maica' }
@@ -290,7 +302,9 @@ router.post(
     };
 
     let objectsCreated = 0;
+    let objectsSkipped = 0;
     let fieldsCreated = 0;
+    let fieldsSkipped = 0;
 
     try {
       let toProcess = objectMappings.filter(
@@ -349,16 +363,25 @@ router.post(
             objectsCreated += 1;
             advanceProgress(`Created object ${objFullName}`, { object: objFullName });
           } catch (err) {
-            const msg = getErrorMessage(err);
-            const fullMsg = `Failed to create object ${objFullName}: ${msg}`;
-            console.error('Migration object create error:', fullMsg, err);
-            send({
-              type: 'error',
-              message: fullMsg,
-              object: objFullName,
-              error: msg,
-            });
-            throw err;
+            if (isAlreadyExistsError(err)) {
+              objectsSkipped += 1;
+              advanceProgress(`Skipped object ${objFullName}: already exists`, {
+                object: objFullName,
+                skipped: true,
+                reason: 'object_already_exists',
+              });
+            } else {
+              const msg = getErrorMessage(err);
+              const fullMsg = `Failed to create object ${objFullName}: ${msg}`;
+              console.error('Migration object create error:', fullMsg, err);
+              send({
+                type: 'error',
+                message: fullMsg,
+                object: objFullName,
+                error: msg,
+              });
+              throw err;
+            }
           }
 
           for (const f of fieldsToCreate) {
@@ -394,17 +417,27 @@ router.post(
                 field: meta.fullName,
               });
             } catch (err) {
-              const msg = getErrorMessage(err);
-              const fullMsg = `Failed to create field ${meta.fullName}: ${msg}`;
-              console.error('Migration field create error:', fullMsg, err);
-              send({
-                type: 'error',
-                message: fullMsg,
-                object: objFullName,
-                field: meta.fullName,
-                error: msg,
-              });
-              throw err;
+              if (isAlreadyExistsError(err)) {
+                fieldsSkipped += 1;
+                advanceProgress(`Skipped field ${meta.fullName}: already exists`, {
+                  object: objFullName,
+                  field: meta.fullName,
+                  skipped: true,
+                  reason: 'field_already_exists',
+                });
+              } else {
+                const msg = getErrorMessage(err);
+                const fullMsg = `Failed to create field ${meta.fullName}: ${msg}`;
+                console.error('Migration field create error:', fullMsg, err);
+                send({
+                  type: 'error',
+                  message: fullMsg,
+                  object: objFullName,
+                  field: meta.fullName,
+                  error: msg,
+                });
+                throw err;
+              }
             }
           }
         } else if (om.objectAction === 'map' && tgt) {
@@ -447,27 +480,46 @@ router.post(
                 field: meta.fullName,
               });
             } catch (err) {
-              const msg = getErrorMessage(err);
-              const fullMsg = `Failed to create field ${meta.fullName}: ${msg}`;
-              console.error('Migration field create error:', fullMsg, err);
-              send({
-                type: 'error',
-                message: fullMsg,
-                object: objFullName,
-                field: meta.fullName,
-                error: msg,
-              });
-              throw err;
+              if (isAlreadyExistsError(err)) {
+                fieldsSkipped += 1;
+                advanceProgress(`Skipped field ${meta.fullName}: already exists`, {
+                  object: objFullName,
+                  field: meta.fullName,
+                  skipped: true,
+                  reason: 'field_already_exists',
+                });
+              } else {
+                const msg = getErrorMessage(err);
+                const fullMsg = `Failed to create field ${meta.fullName}: ${msg}`;
+                console.error('Migration field create error:', fullMsg, err);
+                send({
+                  type: 'error',
+                  message: fullMsg,
+                  object: objFullName,
+                  field: meta.fullName,
+                  error: msg,
+                });
+                throw err;
+              }
             }
           }
         }
       }
 
+      const summaryParts = [];
+      if (objectsCreated > 0) summaryParts.push(`${objectsCreated} object(s) created`);
+      if (objectsSkipped > 0) summaryParts.push(`${objectsSkipped} object(s) skipped (already exist)`);
+      if (fieldsCreated > 0) summaryParts.push(`${fieldsCreated} field(s) created`);
+      if (fieldsSkipped > 0) summaryParts.push(`${fieldsSkipped} field(s) skipped (already exist)`);
+      const summaryMsg = summaryParts.length ? summaryParts.join(', ') : 'No changes needed.';
+
       send({
         type: 'complete',
         objectsCreated,
+        objectsSkipped,
         fieldsCreated,
-        message: `Migration complete. Created ${objectsCreated} object(s) and ${fieldsCreated} field(s).`,
+        fieldsSkipped,
+        message: `Migration complete. ${summaryMsg}`,
       });
     } catch (err) {
       const msg = getErrorMessage(err);
@@ -477,7 +529,9 @@ router.post(
         message: msg,
         error: msg,
         objectsCreated,
+        objectsSkipped,
         fieldsCreated,
+        fieldsSkipped,
       });
     } finally {
       res.end();
