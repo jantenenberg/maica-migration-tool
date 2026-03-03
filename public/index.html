@@ -548,8 +548,6 @@
     }
     .map-obj-search::placeholder { color: var(--text-muted); }
     .map-obj-table-wrap {
-      max-height: 480px;
-      overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: 10px;
     }
@@ -624,14 +622,55 @@
     .map-fields-phase2-stats .create { color: #eab308; }
     .map-fields-phase2-stats .excluded { color: var(--text-muted); }
     .map-fields-phase2-stats .needs { color: #ef4444; }
-    .migration-plan-card {
-      margin-top: 1.5rem;
-      padding: 1.25rem;
+    .migration-plan-trigger {
+      margin-top: 1rem;
+      color: var(--primary);
+      font-weight: 500;
+    }
+    .migration-plan-trigger:hover { color: var(--primary-hover); }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1.5rem;
+    }
+    .modal-dialog {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     }
-    .migration-plan-card h3 { margin: 0 0 1rem; font-size: 1.1rem; color: #fff; }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 { margin: 0; font-size: 1.25rem; color: #fff; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
     .migration-plan-section {
       margin-bottom: 1rem;
       padding: 0.75rem 1rem;
@@ -1253,7 +1292,10 @@
           <h2>Object &amp; Field Mapping</h2>
           <p class="subtitle">Map source objects to target objects, then configure field mappings.</p>
         </div>
-        <button class="btn btn-primary" id="continueToCustomizations" title="">Continue to Customizations</button>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <button type="button" class="btn btn-ghost migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
+          <button class="btn btn-primary" id="continueToCustomizations" title="">Continue to Customizations</button>
+        </div>
       </div>
       <div id="mapFieldsPhase1" style="display: none;">
         <div class="map-obj-summary" id="mapObjSummary"></div>
@@ -1274,15 +1316,14 @@
             <tbody id="mapObjTableBody"></tbody>
           </table>
         </div>
-        <div class="migration-plan-card" id="migrationPlanCard">
-          <h3>Migration Plan</h3>
-          <div id="migrationPlanContent"></div>
-        </div>
+        <button type="button" class="btn btn-ghost migration-plan-trigger" id="migrationPlanTrigger">
+          View Migration Plan
+        </button>
       </div>
       <div id="mapFieldsPhase2" style="display: none;">
         <button class="btn btn-ghost map-fields-back" id="mapFieldsBack">← Back to Object Mapping</button>
         <div id="mapFieldsPhase2Header"></div>
-        <div class="map-obj-table-wrap" style="max-height: 400px;">
+        <div class="map-obj-table-wrap">
           <table class="field-table" id="mapFieldTable">
             <thead><tr><th>Source Field</th><th>Type</th><th>Target Field</th><th>Confidence</th><th>Action</th></tr></thead>
             <tbody id="mapFieldTableBody"></tbody>
@@ -1959,6 +2000,27 @@
     document.getElementById('customizationsRetry').addEventListener('click', () => loadExplorerCustomizations());
 
     document.getElementById('continueToCustomizations')?.addEventListener('click', () => goToStep(4));
+    document.getElementById('migrationPlanTrigger')?.addEventListener('click', openMigrationPlanModal);
+    document.getElementById('migrationPlanTriggerHeader')?.addEventListener('click', openMigrationPlanModal);
+    document.getElementById('migrationPlanModalClose')?.addEventListener('click', () => {
+      const modal = document.getElementById('migrationPlanModal');
+      if (modal) { modal.style.display = 'none'; modal.setAttribute('aria-hidden', 'true'); }
+    });
+    document.getElementById('migrationPlanModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'migrationPlanModal') {
+        e.target.style.display = 'none';
+        e.target.setAttribute('aria-hidden', 'true');
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('migrationPlanModal');
+        if (modal?.style.display === 'flex') {
+          modal.style.display = 'none';
+          modal.setAttribute('aria-hidden', 'true');
+        }
+      }
+    });
     document.getElementById('mapObjSearch')?.addEventListener('input', (e) => {
       state.mapFieldsObjectSearch = e.target.value;
       renderMapFieldsStep();
@@ -2303,6 +2365,12 @@
       return { objectsNeeds, fieldsNeeds, total: objectsNeeds + fieldsNeeds };
     }
 
+    function openMigrationPlanModal() {
+      renderMigrationPlan();
+      const modal = document.getElementById('migrationPlanModal');
+      if (modal) { modal.style.display = 'flex'; modal.setAttribute('aria-hidden', 'false'); }
+    }
+
     function renderMigrationPlan() {
       const el = document.getElementById('migrationPlanContent');
       if (!el) return;
@@ -2343,26 +2411,19 @@
 
       let html = '';
 
-      if (objectsCreate.length > 0) {
-        html += `
-          <div class="migration-plan-section objects-create">
-            <h4>Objects to Create</h4>
-            <p style="margin:0;color:var(--text-muted);">These objects and all their fields will be created in the target org.</p>
-            <ul>${objectsCreate.map((om) => `<li><span class="mono">${escapeHtml(om.source?.apiName)}</span> (${(om.fieldMappings || []).length} fields)</li>`).join('')}</ul>
-          </div>
-        `;
-      }
-
+      // a. Migrated as is — direct match for object/fields
       if (fieldsMappedCount > 0) {
         html += `
           <div class="migration-plan-section field-mappings">
-            <h4>Field Mappings</h4>
-            <p style="margin:0;">${fieldsMappedCount} fields across ${objectsMapped.length} objects will be mapped from source to target.</p>
+            <h4>Migrated as is</h4>
+            <p style="margin:0;font-weight:500;">Direct matches found for objects and fields. These will be migrated with namespace replacement only.</p>
+            <p style="margin:0.5rem 0 0;">${fieldsMappedCount} fields across ${objectsMapped.length} objects.</p>
             ${nsSummary ? `<p style="margin:0.5rem 0 0;color:var(--text-muted);font-size:0.85rem;">${escapeHtml(nsSummary)}</p>` : ''}
           </div>
         `;
       }
 
+      // b. Additional fields to create — object found, extra fields to add
       if (fieldsToCreate.length > 0) {
         const byObj = {};
         fieldsToCreate.forEach(({ object, field }) => {
@@ -2371,9 +2432,21 @@
         });
         html += `
           <div class="migration-plan-section fields-create">
-            <h4>Fields to Create</h4>
-            <p style="margin:0;">${fieldsToCreate.length} custom fields will be created on existing target objects.</p>
+            <h4>Additional fields to create</h4>
+            <p style="margin:0;font-weight:500;">Target object exists; these custom fields will be created on it.</p>
+            <p style="margin:0.5rem 0 0;">${fieldsToCreate.length} fields on existing objects:</p>
             <ul>${Object.entries(byObj).map(([obj, fields]) => `<li><span class="mono">${escapeHtml(obj)}</span>: ${fields.map((f) => escapeHtml(f)).join(', ')}</li>`).join('')}</ul>
+          </div>
+        `;
+      }
+
+      // c. Created from scratch — new objects and all their fields
+      if (objectsCreate.length > 0) {
+        html += `
+          <div class="migration-plan-section objects-create">
+            <h4>Created from scratch</h4>
+            <p style="margin:0;font-weight:500;">New objects and all their fields will be created in the target org.</p>
+            <ul>${objectsCreate.map((om) => `<li><span class="mono">${escapeHtml(om.source?.apiName)}</span> (${(om.fieldMappings || []).length} fields)</li>`).join('')}</ul>
           </div>
         `;
       }
@@ -2605,7 +2678,10 @@
               <span class="needs">${fieldStats.needs} need mapping</span>
             </div>
           </div>
-          <button class="btn btn-ghost" id="mapFieldsPhase2Close">Close</button>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button type="button" class="btn btn-ghost migration-plan-trigger" id="migrationPlanTriggerPhase2">View Migration Plan</button>
+            <button class="btn btn-ghost" id="mapFieldsPhase2Close">Close</button>
+          </div>
         </div>
       `;
 
@@ -2614,6 +2690,7 @@
         state.selectedObjectIdx = null;
         renderMapFieldsStep();
       });
+      document.getElementById('migrationPlanTriggerPhase2')?.addEventListener('click', openMigrationPlanModal);
 
       const rows = (om.fieldMappings || []).map((fm, fieldIdx) => {
         const selectedValue = fm.action === 'map' && fm.target ? fm.target.apiName : fm.action === 'create' ? '__create__' : fm.action === 'skip' ? '__skip__' : '__select__';
@@ -3008,6 +3085,17 @@
       document.getElementById('sourceCallbackUrl').textContent = base + '/oauth/source/callback';
       document.getElementById('targetCallbackUrl').textContent = base + '/oauth/target/callback';
     }
+
+    <!-- Migration Plan Modal -->
+    <div id="migrationPlanModal" class="modal-overlay" style="display: none;" aria-hidden="true">
+      <div class="modal-dialog migration-plan-modal">
+        <div class="modal-header">
+          <h2>Migration Plan</h2>
+          <button type="button" class="modal-close" id="migrationPlanModalClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body" id="migrationPlanContent"></div>
+      </div>
+    </div>
 
     init();
   </script>
