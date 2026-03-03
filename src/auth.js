@@ -1,8 +1,19 @@
+const crypto = require('crypto');
 const express = require('express');
 const jsforce = require('jsforce');
 const router = express.Router();
 
 const VALID_ORG_TYPES = ['source', 'target'];
+
+function base64UrlEncode(buf) {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function generatePKCE() {
+  const codeVerifier = base64UrlEncode(crypto.randomBytes(64));
+  const codeChallenge = base64UrlEncode(crypto.createHash('sha256').update(codeVerifier).digest());
+  return { codeVerifier, codeChallenge };
+}
 
 function getOAuth2Config(orgType, loginUrlOverride) {
   const prefix = orgType === 'source' ? 'SF_SOURCE' : 'SF_TARGET';
@@ -72,8 +83,13 @@ router.get('/:orgType/login', validateOrgType, (req, res) => {
 
   const oauth2 = getOAuth2Config(orgType, loginUrlOverride);
   req.session.pendingOrgType = orgType;
+  if (loginUrlOverride) req.session.loginUrlOverride = loginUrlOverride;
 
-  const authUrl = oauth2.getAuthorizationUrl({ scope: 'api refresh_token full' });
+  const { codeVerifier, codeChallenge } = generatePKCE();
+  req.session.codeVerifier = codeVerifier;
+
+  let authUrl = oauth2.getAuthorizationUrl({ scope: 'api refresh_token full' });
+  authUrl += (authUrl.includes('?') ? '&' : '?') + `code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`;
   res.redirect(authUrl);
 });
 
@@ -91,10 +107,46 @@ router.get('/:orgType/callback', validateOrgType, async (req, res) => {
     return res.redirect(`/?error=${encodeURIComponent('No authorization code received')}&orgType=${orgType}`);
   }
 
+  const codeVerifier = req.session?.codeVerifier;
+  if (!codeVerifier) {
+    return res.redirect(`/?error=${encodeURIComponent('Session expired — please try connecting again')}&orgType=${orgType}`);
+  }
+
   try {
-    const oauth2 = getOAuth2Config(orgType);
-    const conn = new jsforce.Connection({ oauth2 });
-    await conn.authorize(code);
+    const loginUrlOverride = req.session?.loginUrlOverride;
+    const oauth2 = getOAuth2Config(orgType, loginUrlOverride);
+    delete req.session.loginUrlOverride;
+
+    const tokenUrl = `${oauth2.loginUrl}/services/oauth2/token`;
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: oauth2.clientId,
+      client_secret: oauth2.clientSecret,
+      redirect_uri: oauth2.redirectUri,
+      code_verifier: codeVerifier,
+    }).toString();
+
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok) {
+      const errMsg = tokenData.error_description || tokenData.error || 'Token exchange failed';
+      throw new Error(errMsg);
+    }
+
+    const conn = new jsforce.Connection({
+      oauth2,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      instanceUrl: tokenData.instance_url,
+    });
+
+    delete req.session.codeVerifier;
 
     const [identity, orgResult, packagesResult] = await Promise.all([
       conn.identity(),
