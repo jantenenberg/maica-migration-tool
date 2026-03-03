@@ -536,6 +536,17 @@
       align-items: center;
       margin-bottom: 1rem;
     }
+    .map-bulk-actions { margin-left: auto; }
+    .migration-plan-confirm-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .migration-plan-confirm-card ul { margin: 0.5rem 0 1rem 1.5rem; padding: 0; }
+    .migration-plan-confirm-card li { margin-bottom: 0.35rem; }
     .map-obj-search {
       flex: 1;
       min-width: 200px;
@@ -1285,12 +1296,22 @@
     <div class="stepper-sep"></div>
     <div class="stepper-step" data-step="4">
       <span class="stepper-dot"></span>
-      <span>Customizations</span>
+      <span>Migration Plan</span>
     </div>
     <div class="stepper-sep"></div>
     <div class="stepper-step" data-step="5">
       <span class="stepper-dot"></span>
-      <span>Review & Deploy</span>
+      <span>Schema Summary</span>
+    </div>
+    <div class="stepper-sep"></div>
+    <div class="stepper-step" data-step="6">
+      <span class="stepper-dot"></span>
+      <span>Data Counts</span>
+    </div>
+    <div class="stepper-sep"></div>
+    <div class="stepper-step" data-step="7">
+      <span class="stepper-dot"></span>
+      <span>Data Migration</span>
     </div>
   </nav>
 
@@ -1349,7 +1370,7 @@
         </div>
         <div class="map-header-actions">
           <button type="button" class="btn btn-primary migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
-          <button class="btn btn-primary" id="continueToCustomizations" title="">Continue to Customizations</button>
+          <button class="btn btn-primary" id="continueToMigrationPlan" title="">Continue to Migration Plan</button>
         </div>
       </div>
       <div id="mapFieldsPhase1" style="display: none;">
@@ -1357,6 +1378,9 @@
         <div class="map-obj-filters">
           <input type="text" class="map-obj-search" id="mapObjSearch" placeholder="Search objects..." />
           <div class="explorer-filter-btns" id="mapObjFilterTabs"></div>
+          <div class="map-bulk-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="bulkNeedsToCreate">Mark all Needs Mapping → Create</button>
+          </div>
         </div>
         <div class="stats-bar" id="statsBar">
           <div class="stat-card total"><div class="value" id="statTotal">0</div><div class="label">Total Fields</div></div>
@@ -1388,47 +1412,60 @@
       <div id="objectList"></div>
     </div>
 
-    <!-- Step 4: Customizations -->
+    <!-- Step 4: Migration Plan (Confirm & Execute) -->
     <div class="step-content" id="step4Content" data-step="4">
       <div class="map-header">
         <div>
-          <h2>Customizations to Migrate</h2>
-          <p class="subtitle">Unmanaged components found in the source org. Selected items will be re-pointed to the new schema.</p>
+          <h2>Confirm Migration Plan</h2>
+          <p class="subtitle">Review the migration plan below. This will create objects and fields in the target org only — no changes to the source org.</p>
         </div>
-        <button class="btn btn-primary" id="continueToReview">Continue to Review</button>
       </div>
-      <div class="cust-tabs" id="custTabs"></div>
-      <div class="cust-actions">
-        <button class="btn btn-ghost" id="custSelectAll">Select All</button>
-        <button class="btn btn-ghost" id="custDeselectAll">Deselect All</button>
-      </div>
-      <div id="custList"></div>
-      <div class="cust-impact-card" id="custImpactCard">
-        <h3>Reference Impact Summary</h3>
-        <div class="cust-impact-grid" id="custImpactGrid"></div>
+      <div id="migrationPlanStepContent">
+        <div class="migration-plan-confirm-card">
+          <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
+          <ul>
+            <li>New objects and fields will be visible to System Administrator profile by default</li>
+            <li>Field types, picklist values, and validation rules will match the source</li>
+          </ul>
+          <button class="btn btn-primary" id="executeMigrationPlan">Execute Migration Plan</button>
+        </div>
       </div>
     </div>
 
-    <!-- Step 5: Review & Deploy -->
+    <!-- Step 5: Schema Summary -->
     <div class="step-content" id="step5Content" data-step="5">
       <div class="map-header">
         <div>
-          <h2>Migration Review</h2>
-          <p class="subtitle">Review the full migration scope before deploying to the target org.</p>
+          <h2>Schema Migration Summary</h2>
+          <p class="subtitle">Summary of objects and fields created in the target org.</p>
+        </div>
+        <button class="btn btn-primary" id="downloadSchemaSummary">Download Summary (.md)</button>
+      </div>
+      <div id="schemaSummaryContent"></div>
+      <button class="btn btn-primary" id="continueToDataCounts">Continue to Data Counts</button>
+    </div>
+
+    <!-- Step 6: Data Counts -->
+    <div class="step-content" id="step6Content" data-step="6">
+      <div class="map-header">
+        <div>
+          <h2>Data Record Counts</h2>
+          <p class="subtitle">Record count per object in the source org. Confirm to proceed with data migration.</p>
         </div>
       </div>
-      <div class="review-summary-cards" id="reviewSummaryCards"></div>
-      <div class="review-replacements-card" id="reviewReplacementsCard">
-        <h3 id="reviewReplacementsTitle">API Name Replacements (0)</h3>
-        <p class="sub" id="reviewReplacementsSub">These references will be updated in all selected customizations</p>
-        <div class="review-replacements-table-wrap">
-          <table class="review-replacements-table" id="reviewReplacementsTable">
-            <thead><tr><th>Type</th><th>Source Reference</th><th></th><th>Target Reference</th></tr></thead>
-            <tbody id="reviewReplacementsBody"></tbody>
-          </table>
+      <div id="dataCountsContent"></div>
+      <button class="btn btn-primary" id="continueToDataMigration">Confirm Data Migration</button>
+    </div>
+
+    <!-- Step 7: Data Migration -->
+    <div class="step-content" id="step7Content" data-step="7">
+      <div class="map-header">
+        <div>
+          <h2>Data Migration</h2>
+          <p class="subtitle">Migrating data from source org to target org.</p>
         </div>
       </div>
-      <div class="review-deploy-card" id="reviewDeployCard"></div>
+      <div id="dataMigrationContent"></div>
     </div>
 
     <!-- Source Explorer (standalone view, not part of stepper) -->
@@ -1501,6 +1538,8 @@
       selectedCustomizations: new Set(),
       customizationFilter: 'all',
       deployStatus: null,
+      migrationResult: null,
+      recordCounts: null,
       explorerSchema: null,
       explorerCustomizations: null,
       explorerDataModelFilter: 'all',
@@ -1540,7 +1579,7 @@
         state.targetSchemaObjects = (state.targetSchema?.objects || []).slice().sort((a, b) =>
           ((a.label || a.apiName || '').toLowerCase()).localeCompare((b.label || b.apiName || '').toLowerCase())
         );
-        state.currentStep = Math.min(Math.max(1, data.currentStep || 1), 5);
+        state.currentStep = Math.min(Math.max(1, data.currentStep || 1), 7);
         state.customizations = data.customizations || null;
         state.selectedCustomizations = new Set(data.selectedCustomizations || []);
         return true;
@@ -2093,7 +2132,7 @@
     document.getElementById('dataModelRetry').addEventListener('click', () => loadExplorerDataModel());
     document.getElementById('customizationsRetry').addEventListener('click', () => loadExplorerCustomizations());
 
-    document.getElementById('continueToCustomizations')?.addEventListener('click', () => goToStep(4));
+    document.getElementById('continueToMigrationPlan')?.addEventListener('click', () => goToStep(4));
     document.getElementById('migrationPlanTrigger')?.addEventListener('click', openMigrationPlanModal);
     document.getElementById('migrationPlanTriggerHeader')?.addEventListener('click', openMigrationPlanModal);
     function closeMigrationPlanModal() {
@@ -2110,12 +2149,14 @@
       state.mapFieldsObjectSearch = e.target.value;
       renderMapFieldsStep();
     });
+    document.getElementById('bulkNeedsToCreate')?.addEventListener('click', bulkMarkNeedsToCreate);
     document.getElementById('mapFieldsBack')?.addEventListener('click', () => {
       state.mapFieldsPhase = 'objects';
       state.selectedObjectIdx = null;
       renderMapFieldsStep();
     });
-    document.getElementById('continueToReview')?.addEventListener('click', () => goToStep(5));
+    document.getElementById('continueToDataCounts')?.addEventListener('click', () => goToStep(6));
+    document.getElementById('continueToDataMigration')?.addEventListener('click', () => goToStep(7));
 
     // Stepper click handlers
     document.querySelectorAll('.stepper-step').forEach((el) => {
@@ -2140,8 +2181,10 @@
       });
       if (step === 1) render();
       if (step === 3) renderMapFieldsStep();
-      if (step === 4) renderCustomizationsStep();
-      if (step === 5) renderReviewStep();
+      if (step === 4) renderMigrationPlanStep();
+      if (step === 5) renderSchemaSummaryStep();
+      if (step === 6) renderDataCountsStep();
+      if (step === 7) renderDataMigrationStep();
       saveMigrationState();
     }
 
@@ -2329,6 +2372,41 @@
       runDiscovery();
     }
 
+    function bulkMarkNeedsToCreate() {
+      let objectsChanged = 0, fieldsChanged = 0;
+      state.objectMappings.forEach((om) => {
+        const objStatus = getObjectMappingStatus(om);
+        if (objStatus.class === 'needs') {
+          om.objectAction = 'create';
+          om.target = null;
+          objectsChanged++;
+          (om.fieldMappings || []).forEach((fm) => {
+            fm.action = 'create';
+            fm.target = null;
+            fm.confidence = 'NONE';
+            fieldsChanged++;
+          });
+        } else if (om.objectAction === 'map' && om.target) {
+          (om.fieldMappings || []).forEach((fm) => {
+            const fs = getFieldStatus(fm);
+            if (fs.class === 'needs') {
+              fm.action = 'create';
+              fm.target = null;
+              fm.confidence = 'NONE';
+              fieldsChanged++;
+            }
+          });
+        }
+      });
+      renderMapFieldsStep();
+      updateMapFieldsContinueAndStepper();
+      renderStatsBar();
+      saveMigrationState();
+      if (objectsChanged > 0 || fieldsChanged > 0) {
+        showToast(`Marked ${objectsChanged} objects and ${fieldsChanged} fields as Create`, 'success');
+      }
+    }
+
     function computeMappingStats() {
       let total = 0, mapped = 0, toCreate = 0, excluded = 0, needs = 0;
       for (const om of state.objectMappings) {
@@ -2460,7 +2538,7 @@
       if (modal) { modal.style.display = 'flex'; modal.setAttribute('aria-hidden', 'false'); }
     }
 
-    function getMigrationPlanText() {
+    function getMigrationPlanMarkdown() {
       const byCategory = { fully: [], partial: [], create: [], excluded: [], needs: [] };
       state.objectMappings.forEach((om) => {
         const status = getObjectPlanStatus(om);
@@ -2474,11 +2552,12 @@
         ['excluded', 'Excluded', 'Excluded from migration.'],
         ['needs', 'Needs attention', 'Requires mapping before continuing.'],
       ];
-      let lines = ['MIGRATION PLAN', '================', ''];
+      let lines = ['# Migration Plan', '', 'This document describes the object and field mapping for the schema migration.', ''];
       categoryDefs.forEach(([key, title, desc]) => {
         const items = byCategory[key] || [];
         if (items.length === 0) return;
-        lines.push(`${title} (${items.length})`);
+        lines.push(`## ${title} (${items.length})`);
+        lines.push('');
         lines.push(desc);
         lines.push('');
         items.forEach(({ om, status }) => {
@@ -2487,12 +2566,19 @@
           const srcLabel = src?.label || src?.apiName || '';
           const srcApi = src?.apiName || '';
           const tgtLabel = tgt ? (tgt.label || tgt.apiName) : '—';
-          lines.push(`  ${srcLabel} (${srcApi}) → ${tgtLabel} [${status.label}]`);
-          (om.fieldMappings || []).forEach((fm) => {
-            const fs = getFieldStatus(fm);
-            lines.push(`    - ${fm.source?.apiName || ''} [${fs.label}]`);
-          });
+          lines.push(`### ${srcLabel} (\`${srcApi}\`) → ${tgtLabel}`);
           lines.push('');
+          lines.push(`**Status:** ${status.label}`);
+          lines.push('');
+          if ((om.fieldMappings || []).length > 0) {
+            lines.push('**Fields:**');
+            lines.push('');
+            (om.fieldMappings || []).forEach((fm) => {
+              const fs = getFieldStatus(fm);
+              lines.push(`- \`${fm.source?.apiName || ''}\` — ${fs.label}`);
+            });
+            lines.push('');
+          }
         });
       });
       return lines.join('\n');
@@ -2500,12 +2586,12 @@
 
     function downloadMigrationPlan() {
       try {
-        const text = getMigrationPlanText();
-        const blob = new Blob([text], { type: 'text/plain' });
+        const md = getMigrationPlanMarkdown();
+        const blob = new Blob([md], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `migration-plan-${new Date().toISOString().slice(0, 10)}.txt`;
+        a.download = `migration-plan-${new Date().toISOString().slice(0, 10)}.md`;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
@@ -2754,7 +2840,7 @@
 
     function updateMapFieldsContinueAndStepper() {
       const needs = computeNeedsAttention();
-      const btn = document.getElementById('continueToCustomizations');
+      const btn = document.getElementById('continueToMigrationPlan');
       if (btn) {
         btn.disabled = needs.total > 0;
         btn.title = needs.total > 0 ? 'Resolve all unmapped items or exclude them before continuing.' : '';
@@ -2945,6 +3031,115 @@
         const d = new Date(s);
         return isNaN(d.getTime()) ? s : d.toLocaleDateString();
       } catch { return s; }
+    }
+
+    function renderMigrationPlanStep() {
+      const content = document.getElementById('migrationPlanStepContent');
+      if (!content) return;
+      const needs = computeNeedsAttention();
+      if (needs.total > 0) {
+        content.innerHTML = `
+          <div class="migration-plan-confirm-card" style="border-left-color:#ef4444;">
+            <p><strong>Resolve unmapped items first.</strong> ${needs.objectsNeeds} objects and ${needs.fieldsNeeds} fields still need mapping. Go back to Map Fields to resolve or exclude them.</p>
+            <button class="btn btn-ghost" onclick="goToStep(3)">← Back to Map Fields</button>
+          </div>
+        `;
+        return;
+      }
+      content.innerHTML = `
+        <div class="migration-plan-confirm-card">
+          <p>Click <strong>Execute Migration Plan</strong> to create new objects and fields in the target org based on your mappings.</p>
+          <ul>
+            <li>New objects and fields will be visible to System Administrator profile by default</li>
+            <li>Field types, picklist values, and validation rules will match the source</li>
+          </ul>
+          <button class="btn btn-primary" id="executeMigrationPlan">Execute Migration Plan</button>
+        </div>
+      `;
+      document.getElementById('executeMigrationPlan')?.addEventListener('click', executeMigrationPlan);
+    }
+
+    async function executeMigrationPlan() {
+      const btn = document.getElementById('executeMigrationPlan');
+      if (btn) { btn.disabled = true; btn.textContent = 'Executing...'; }
+      try {
+        const res = await fetch('/api/migration/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            objectMappings: state.objectMappings,
+            sourceSchema: state.sourceSchema,
+            targetSchema: state.targetSchema,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || res.statusText || 'Execution failed');
+        }
+        state.migrationResult = await res.json();
+        goToStep(5);
+      } catch (err) {
+        showToast(err.message || 'Migration execution failed', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Execute Migration Plan'; }
+      }
+    }
+
+    function renderSchemaSummaryStep() {
+      const el = document.getElementById('schemaSummaryContent');
+      if (!el) return;
+      const result = state.migrationResult || {};
+      el.innerHTML = `
+        <div class="migration-plan-confirm-card">
+          <h3>Schema migration complete</h3>
+          <p>Objects and fields have been created in the target org.</p>
+          <pre style="background:var(--bg);padding:1rem;border-radius:8px;overflow:auto;font-size:0.85rem;">${escapeHtml(JSON.stringify(result, null, 2))}</pre>
+        </div>
+      `;
+    }
+
+    function getSchemaSummaryMarkdown() {
+      const result = state.migrationResult || {};
+      const lines = ['# Schema Migration Summary', '', '## Completed Work', '', 'Objects and fields have been created in the target org.', '', '```json', JSON.stringify(result, null, 2), '```'];
+      return lines.join('\n');
+    }
+
+    function renderDataCountsStep() {
+      const el = document.getElementById('dataCountsContent');
+      if (!el) return;
+      el.innerHTML = `
+        <div class="migration-plan-confirm-card">
+          <p>Loading record counts from source org...</p>
+        </div>
+      `;
+      fetch('/api/source/record-counts', { credentials: 'include' })
+        .then((r) => r.ok ? r.json() : Promise.reject(new Error('Failed to load counts')))
+        .then((counts) => {
+          state.recordCounts = counts;
+          const rows = (counts.objects || []).map((o) => `<tr><td>${escapeHtml(o.apiName || '')}</td><td>${o.count ?? '—'}</td></tr>`).join('');
+          el.innerHTML = `
+            <div class="map-obj-table-wrap">
+              <table class="map-obj-table">
+                <thead><tr><th>Object</th><th>Record Count</th></tr></thead>
+                <tbody>${rows || '<tr><td colspan="2">No data</td></tr>'}</tbody>
+              </table>
+            </div>
+          `;
+        })
+        .catch((err) => {
+          el.innerHTML = `<div class="migration-plan-confirm-card" style="border-left-color:#ef4444;"><p>${escapeHtml(err.message)}</p></div>`;
+        });
+    }
+
+    function renderDataMigrationStep() {
+      const el = document.getElementById('dataMigrationContent');
+      if (!el) return;
+      el.innerHTML = `
+        <div class="migration-plan-confirm-card">
+          <p>Data migration will be implemented. This step requires backend support for copying records from source to target org.</p>
+        </div>
+      `;
     }
 
     function renderCustomizationsStep() {
@@ -3225,6 +3420,19 @@
       });
       document.querySelector('#migrationPlanModal .modal-dialog')?.addEventListener('click', (e) => e.stopPropagation());
       document.getElementById('migrationPlanDownload')?.addEventListener('click', () => downloadMigrationPlan());
+      document.getElementById('downloadSchemaSummary')?.addEventListener('click', () => {
+        const md = getSchemaSummaryMarkdown();
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `schema-migration-summary-${new Date().toISOString().slice(0, 10)}.md`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
     }
 
     init();
@@ -3236,7 +3444,7 @@
       <div class="modal-header">
         <h2>Migration Plan</h2>
         <div class="modal-header-actions">
-          <button type="button" class="btn btn-ghost btn-sm" id="migrationPlanDownload">Download as .txt</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="migrationPlanDownload">Download as .md</button>
           <button type="button" class="modal-close" id="migrationPlanModalClose" data-close-migration-modal aria-label="Close">&times;</button>
         </div>
       </div>

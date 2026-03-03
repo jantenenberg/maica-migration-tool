@@ -8,6 +8,7 @@ const auth = require('./src/auth');
 const schemaRouter = require('./src/schema');
 const customizationsRouter = require('./src/customizations');
 const referencesRouter = require('./src/references');
+const migrationRouter = require('./src/migration');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -67,6 +68,7 @@ app.use('/oauth', auth);
 app.use('/api', schemaRouter);
 app.use('/api', customizationsRouter);
 app.use('/api', referencesRouter);
+app.use('/api', migrationRouter);
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
