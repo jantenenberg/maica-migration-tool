@@ -3,6 +3,14 @@ const express = require('express');
 const jsforce = require('jsforce');
 const router = express.Router();
 
+/** Token endpoint must be login.salesforce.com or test.salesforce.com, never instance URLs. */
+function getTokenEndpointLoginUrl(loginUrl) {
+  if (!loginUrl) return 'https://login.salesforce.com';
+  const u = loginUrl.toLowerCase();
+  if (u.includes('test.salesforce.com')) return 'https://test.salesforce.com';
+  return 'https://login.salesforce.com';
+}
+
 const VALID_ORG_TYPES = ['source', 'target'];
 
 function base64UrlEncode(buf) {
@@ -114,50 +122,35 @@ router.get('/:orgType/callback', validateOrgType, async (req, res) => {
 
   try {
     const oauth2 = getOAuth2Config(orgType);
-    const loginUrl = req.session?.oauthLoginUrl || oauth2.loginUrl;
+    const storedLoginUrl = req.session?.oauthLoginUrl || oauth2.loginUrl;
     delete req.session.oauthLoginUrl;
     delete req.session.codeVerifier;
 
-    const tokenUrl = `${loginUrl}/services/oauth2/token`;
-    const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      client_id: oauth2.clientId,
-      client_secret: oauth2.clientSecret,
-      redirect_uri: oauth2.redirectUri,
-      code_verifier: codeVerifier,
-    });
-    const body = params.toString();
+    const tokenLoginUrl = getTokenEndpointLoginUrl(storedLoginUrl);
+    oauth2.loginUrl = tokenLoginUrl;
+    oauth2.authzServiceUrl = `${tokenLoginUrl}/services/oauth2/authorize`;
+    oauth2.tokenServiceUrl = `${tokenLoginUrl}/services/oauth2/token`;
+    oauth2.codeVerifier = codeVerifier;
 
     console.log('[OAuth] Token exchange:', {
-      tokenUrl,
+      tokenUrl: oauth2.tokenServiceUrl,
       grant_type: 'authorization_code',
-      code: code ? '[present]' : '[missing]',
       client_id: oauth2.clientId,
       redirect_uri: oauth2.redirectUri,
-      code_verifier: codeVerifier ? '[present]' : '[missing]',
     });
 
-    const tokenRes = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-    });
+    let tokenData;
+    try {
+      tokenData = await oauth2.requestToken(code);
+    } catch (err) {
+      console.log('[OAuth] Token error:', err.message, err.name);
+      throw err;
+    }
 
-    const tokenData = await tokenRes.json();
-    console.log('[OAuth] Token response:', {
-      status: tokenRes.status,
-      ok: tokenRes.ok,
-      error: tokenData.error,
-      error_description: tokenData.error_description,
+    console.log('[OAuth] Token success:', {
       has_access_token: !!tokenData.access_token,
       has_instance_url: !!tokenData.instance_url,
     });
-
-    if (!tokenRes.ok) {
-      const errMsg = tokenData.error_description || tokenData.error || 'Token exchange failed';
-      throw new Error(errMsg);
-    }
 
     const conn = new jsforce.Connection({
       instanceUrl: tokenData.instance_url,
