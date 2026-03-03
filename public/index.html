@@ -567,7 +567,7 @@
       top: 0;
       z-index: 1;
     }
-    .map-obj-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .map-obj-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; line-height: 1.4; }
     .map-obj-table tr:last-child td { border-bottom: none; }
     .map-obj-table tr:hover td { background: rgba(255,255,255,0.02); }
     .map-obj-src-label { font-weight: 500; display: block; }
@@ -582,7 +582,8 @@
       border-radius: 6px;
       color: var(--text);
     }
-    .map-obj-status { font-size: 0.85rem; font-weight: 500; }
+    .map-obj-table td:nth-child(3) { min-width: 7rem; }
+    .map-obj-status { font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
     .map-obj-status.mapped { color: #22c55e; }
     .map-obj-status.create { color: #eab308; }
     .map-obj-status.excluded { color: var(--text-muted); }
@@ -623,12 +624,11 @@
     .map-fields-phase2-stats .create { color: #eab308; }
     .map-fields-phase2-stats .excluded { color: var(--text-muted); }
     .map-fields-phase2-stats .needs { color: #ef4444; }
-    .migration-plan-trigger {
-      margin-top: 1rem;
-      color: var(--primary);
-      font-weight: 500;
-    }
-    .migration-plan-trigger:hover { color: var(--primary-hover); }
+    .migration-plan-trigger { font-weight: 500; }
+    .map-header-actions .migration-plan-trigger { margin-top: 0; }
+    #mapFieldsPhase1 > .migration-plan-trigger { margin-top: 1rem; }
+    .btn-ghost.migration-plan-trigger { color: var(--primary); }
+    .btn-ghost.migration-plan-trigger:hover { color: var(--primary-hover); }
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -1341,7 +1341,7 @@
           <p class="subtitle">Map source objects to target objects, then configure field mappings.</p>
         </div>
         <div class="map-header-actions">
-          <button type="button" class="btn btn-ghost migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
+          <button type="button" class="btn btn-primary migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
           <button class="btn btn-primary" id="continueToCustomizations" title="">Continue to Customizations</button>
         </div>
       </div>
