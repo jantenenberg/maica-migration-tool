@@ -3,12 +3,10 @@ const express = require('express');
 const jsforce = require('jsforce');
 const router = express.Router();
 
-/** Token endpoint must be login.salesforce.com or test.salesforce.com, never instance URLs. */
-function getTokenEndpointLoginUrl(loginUrl) {
-  if (!loginUrl) return 'https://login.salesforce.com';
-  const u = loginUrl.toLowerCase();
-  if (u.includes('test.salesforce.com')) return 'https://test.salesforce.com';
-  return 'https://login.salesforce.com';
+/** Normalize loginUrl: ensure no trailing slash. */
+function normalizeLoginUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  return url.replace(/\/+$/, '');
 }
 
 const VALID_ORG_TYPES = ['source', 'target'];
@@ -87,14 +85,20 @@ function validateOrgType(req, res, next) {
 // GET /oauth/:orgType/login
 router.get('/:orgType/login', validateOrgType, (req, res) => {
   const { orgType } = req;
+  const prefix = orgType === 'source' ? 'SF_SOURCE' : 'SF_TARGET';
   const loginUrlOverride = req.query.loginUrl;
+  const loginUrl = normalizeLoginUrl(
+    loginUrlOverride || process.env[`${prefix}_LOGIN_URL`] || 'https://login.salesforce.com'
+  );
 
-  const oauth2 = getOAuth2Config(orgType, loginUrlOverride);
   req.session.pendingOrgType = orgType;
-  req.session.oauthLoginUrl = oauth2.loginUrl;
+  req.session.oauthLoginUrl = loginUrl;
 
+  const oauth2 = getOAuth2Config(orgType, loginUrl || undefined);
   const { codeVerifier, codeChallenge } = generatePKCE();
   req.session.codeVerifier = codeVerifier;
+
+  console.log('[OAuth] Login redirect:', { orgType, loginUrl });
 
   let authUrl = oauth2.getAuthorizationUrl({ scope: 'api refresh_token full' });
   authUrl += (authUrl.includes('?') ? '&' : '?') + `code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`;
@@ -121,20 +125,23 @@ router.get('/:orgType/callback', validateOrgType, async (req, res) => {
   }
 
   try {
+    const prefix = orgType === 'source' ? 'SF_SOURCE' : 'SF_TARGET';
     const oauth2 = getOAuth2Config(orgType);
-    const storedLoginUrl = req.session?.oauthLoginUrl || oauth2.loginUrl;
+    const loginUrl = normalizeLoginUrl(
+      req.session?.oauthLoginUrl || process.env[`${prefix}_LOGIN_URL`] || 'https://login.salesforce.com'
+    );
     delete req.session.oauthLoginUrl;
     delete req.session.codeVerifier;
 
-    const tokenLoginUrl = getTokenEndpointLoginUrl(storedLoginUrl);
-    oauth2.loginUrl = tokenLoginUrl;
-    oauth2.authzServiceUrl = `${tokenLoginUrl}/services/oauth2/authorize`;
-    oauth2.tokenServiceUrl = `${tokenLoginUrl}/services/oauth2/token`;
+    oauth2.loginUrl = loginUrl;
+    oauth2.authzServiceUrl = `${loginUrl}/services/oauth2/authorize`;
+    oauth2.tokenServiceUrl = `${loginUrl}/services/oauth2/token`;
     oauth2.codeVerifier = codeVerifier;
 
-    console.log('[OAuth] Token exchange:', {
+    console.log('[OAuth] Callback token exchange:', {
+      orgType,
+      loginUrl,
       tokenUrl: oauth2.tokenServiceUrl,
-      grant_type: 'authorization_code',
       client_id: oauth2.clientId,
       redirect_uri: oauth2.redirectUri,
     });
