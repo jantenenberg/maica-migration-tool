@@ -3135,18 +3135,18 @@
       document.getElementById('targetCallbackUrl').textContent = base + '/oauth/target/callback';
     }
 
-    <!-- Migration Plan Modal -->
-    <div id="migrationPlanModal" class="modal-overlay" style="display: none;" aria-hidden="true">
-      <div class="modal-dialog migration-plan-modal">
-        <div class="modal-header">
-          <h2>Migration Plan</h2>
-          <button type="button" class="modal-close" id="migrationPlanModalClose" aria-label="Close">&times;</button>
-        </div>
-        <div class="modal-body" id="migrationPlanContent"></div>
-      </div>
-    </div>
-
     init();
   </script>
+
+  <!-- Migration Plan Modal -->
+  <div id="migrationPlanModal" class="modal-overlay" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog migration-plan-modal">
+      <div class="modal-header">
+        <h2>Migration Plan</h2>
+        <button type="button" class="modal-close" id="migrationPlanModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="migrationPlanContent"></div>
+    </div>
+  </div>
 </body>
 </html>
