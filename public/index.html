@@ -2436,6 +2436,16 @@
             fm.confidence = 'NONE';
             fieldsChanged++;
           });
+        } else if (om.objectAction === 'map' && om.target) {
+          (om.fieldMappings || []).forEach((fm) => {
+            const fs = getFieldStatus(fm);
+            if (fs.class === 'needs') {
+              fm.action = 'skip';
+              fm.target = null;
+              fm.confidence = 'NONE';
+              fieldsChanged++;
+            }
+          });
         }
       });
       renderMapFieldsStep();
@@ -2537,6 +2547,11 @@
       } else if (value === '__exclude__') {
         om.objectAction = 'exclude';
         om.target = null;
+        (om.fieldMappings || []).forEach((fm) => {
+          fm.action = 'skip';
+          fm.target = null;
+          fm.confidence = 'NONE';
+        });
       } else if (value === '__select__') {
         om.objectAction = undefined;
         om.target = null;
@@ -2595,6 +2610,7 @@
     function computeNeedsAttention() {
       let objectsNeeds = 0, fieldsNeeds = 0;
       state.objectMappings.forEach((om) => {
+        if (om.objectAction === 'exclude') return; // Excluded objects and their fields are skipped
         const objStatus = getObjectMappingStatus(om);
         if (objStatus.class === 'needs') objectsNeeds++;
         if (om.objectAction === 'map' && om.target) {
