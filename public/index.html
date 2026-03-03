@@ -3235,11 +3235,14 @@
 
         if (!res.ok) {
           const errText = await res.text();
-          let errMsg = res.statusText || 'Execution failed';
+          let errMsg = `HTTP ${res.status}: ${res.statusText || 'Request failed'}`;
           try {
             const j = JSON.parse(errText);
             if (j.error) errMsg = j.error;
-          } catch (_) {}
+            else if (j.message) errMsg = j.message;
+          } catch (_) {
+            if (errText && errText.length < 200) errMsg = errText;
+          }
           throw new Error(errMsg);
         }
 
@@ -3274,7 +3277,7 @@
                 goToStep(5);
               } else if (ev.type === 'error') {
                 result = { status: 'error', ...ev };
-                const errText = ev.message || ev.error || 'Migration failed';
+                const errText = ev.message || ev.error || (ev.details ? JSON.stringify(ev.details) : null) || 'Migration failed';
                 addLog(errText, 'error');
                 if (progressMsg) progressMsg.textContent = errText;
                 throw new Error(errText);

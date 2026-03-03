@@ -264,7 +264,13 @@ router.post(
           }
 
           try {
-            await conn.metadata.create('CustomObject', objMeta);
+            const createResult = await conn.metadata.create('CustomObject', objMeta);
+            const results = Array.isArray(createResult) ? createResult : [createResult];
+            const failed = results.find((r) => r && r.success === false);
+            if (failed && (failed.errors?.length || failed.fullName)) {
+              const errMsg = (failed.errors || []).map((e) => e.message || e.statusCode || String(e)).join('; ') || `Create failed for ${failed.fullName || objFullName}`;
+              throw new Error(errMsg);
+            }
             objectsCreated += 1;
             fieldsCreated += fieldMetas.length;
             advanceProgress(`Created ${objFullName} with ${fieldMetas.length} fields`, {
@@ -299,7 +305,13 @@ router.post(
             });
 
             try {
-              await conn.metadata.create('CustomField', meta);
+              const createResult = await conn.metadata.create('CustomField', meta);
+              const results = Array.isArray(createResult) ? createResult : [createResult];
+              const failed = results.find((r) => r && r.success === false);
+              if (failed && (failed.errors?.length || failed.fullName)) {
+                const errMsg = (failed.errors || []).map((e) => e.message || e.statusCode || String(e)).join('; ') || `Create failed for ${failed.fullName || meta.fullName}`;
+                throw new Error(errMsg);
+              }
               fieldsCreated += 1;
               advanceProgress(`Created field ${meta.fullName}`, {
                 object: objFullName,
