@@ -1854,6 +1854,10 @@
         }
         state.explorerSchema = await res.json();
         loading.style.display = 'none';
+        state.explorerExpandedObjects.clear();
+        if (state.explorerSchema?.objects) {
+          state.explorerSchema.objects.forEach((o) => state.explorerExpandedObjects.add(o.apiName));
+        }
         renderExplorerDataModel();
       } catch (err) {
         loading.style.display = 'none';

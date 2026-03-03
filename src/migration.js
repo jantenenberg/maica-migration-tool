@@ -141,7 +141,7 @@ function buildObjectMetadata(sourceObject, namespaceReplacement) {
     sharingModel: 'ReadWrite',
     nameField: {
       type: 'Text',
-      label: sourceObject.label || fullName + ' Name',
+      label: 'Name',
     },
   };
 }
@@ -222,8 +222,11 @@ router.post(
 
       let totalSteps = 0;
       for (const om of toProcess) {
-        if (om.objectAction === 'create') totalSteps += 1;
-        else if (om.objectAction === 'map' && om.target)
+        if (om.objectAction === 'create') {
+          totalSteps += 1;
+          const createFields = (om.fieldMappings || []).filter((fm) => fm.action === 'create' && fm.source);
+          totalSteps += createFields.length;
+        } else if (om.objectAction === 'map' && om.target)
           totalSteps += (om.fieldMappings || []).filter((fm) => fm.action === 'create' && fm.source).length;
       }
 
@@ -253,16 +256,6 @@ router.post(
             .filter((fm) => fm.action === 'create' && fm.source)
             .map((fm) => fm.source);
 
-          const fieldMetas = [];
-          for (const f of fieldsToCreate) {
-            const meta = buildFieldMetadata(f, objFullName, namespaceReplacement);
-            if (meta) fieldMetas.push(meta);
-          }
-
-          if (fieldMetas.length) {
-            objMeta.fields = fieldMetas;
-          }
-
           try {
             const createResult = await conn.metadata.create('CustomObject', objMeta);
             const results = Array.isArray(createResult) ? createResult : [createResult];
@@ -272,11 +265,7 @@ router.post(
               throw new Error(errMsg);
             }
             objectsCreated += 1;
-            fieldsCreated += fieldMetas.length;
-            advanceProgress(`Created ${objFullName} with ${fieldMetas.length} fields`, {
-              object: objFullName,
-              fieldsCount: fieldMetas.length,
-            });
+            advanceProgress(`Created object ${objFullName}`, { object: objFullName });
           } catch (err) {
             const msg = getErrorMessage(err);
             const fullMsg = `Failed to create object ${objFullName}: ${msg}`;
@@ -288,6 +277,43 @@ router.post(
               error: msg,
             });
             throw err;
+          }
+
+          for (const f of fieldsToCreate) {
+            const meta = buildFieldMetadata(f, objFullName, namespaceReplacement);
+            if (!meta) continue;
+
+            sendProgress(`Creating field ${meta.fullName}...`, {
+              object: objFullName,
+              field: meta.fullName,
+            });
+
+            try {
+              const fieldResult = await conn.metadata.create('CustomField', meta);
+              const fieldResults = Array.isArray(fieldResult) ? fieldResult : [fieldResult];
+              const fieldFailed = fieldResults.find((r) => r && r.success === false);
+              if (fieldFailed && (fieldFailed.errors?.length || fieldFailed.fullName)) {
+                const errMsg = (fieldFailed.errors || []).map((e) => e.message || e.statusCode || String(e)).join('; ') || `Create failed for ${fieldFailed.fullName || meta.fullName}`;
+                throw new Error(errMsg);
+              }
+              fieldsCreated += 1;
+              advanceProgress(`Created field ${meta.fullName}`, {
+                object: objFullName,
+                field: meta.fullName,
+              });
+            } catch (err) {
+              const msg = getErrorMessage(err);
+              const fullMsg = `Failed to create field ${meta.fullName}: ${msg}`;
+              console.error('Migration field create error:', fullMsg, err);
+              send({
+                type: 'error',
+                message: fullMsg,
+                object: objFullName,
+                field: meta.fullName,
+                error: msg,
+              });
+              throw err;
+            }
           }
         } else if (om.objectAction === 'map' && tgt) {
           const objFullName = tgt.apiName;
