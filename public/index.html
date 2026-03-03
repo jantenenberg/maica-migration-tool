@@ -649,6 +649,10 @@
       flex-direction: column;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     }
+    .modal-dialog.migration-plan-modal {
+      max-width: 900px;
+      max-height: 90vh;
+    }
     .modal-header {
       display: flex;
       align-items: center;
@@ -686,14 +690,55 @@
     .migration-plan-section h4 { margin: 0 0 0.5rem; font-size: 0.95rem; }
     .migration-plan-section ul { margin: 0.25rem 0 0 1rem; padding: 0; }
     .migration-plan-section li { margin-bottom: 0.25rem; }
+    .migration-plan-tree { font-size: 0.9rem; }
+    .migration-plan-tree .tree-category { margin-bottom: 1.25rem; }
+    .migration-plan-tree .tree-category-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border); }
+    .migration-plan-tree .tree-category.fully-mapped .tree-category-title { color: #22c55e; }
+    .migration-plan-tree .tree-category.partially-mapped .tree-category-title { color: #eab308; }
+    .migration-plan-tree .tree-category.create-new .tree-category-title { color: #eab308; }
+    .migration-plan-tree .tree-category.excluded .tree-category-title { color: var(--text-muted); }
+    .migration-plan-tree .tree-category.needs-attention .tree-category-title { color: #ef4444; }
+    .migration-plan-tree .tree-object { margin: 0.35rem 0; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid transparent; }
+    .migration-plan-tree .tree-object.obj-fully { border-left-color: #22c55e; }
+    .migration-plan-tree .tree-object.obj-partial { border-left-color: #eab308; }
+    .migration-plan-tree .tree-object.obj-create { border-left-color: #eab308; }
+    .migration-plan-tree .tree-object.obj-excluded { border-left-color: var(--text-muted); }
+    .migration-plan-tree .tree-object.obj-needs { border-left-color: #ef4444; }
+    .migration-plan-tree .tree-object-header { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
+    .migration-plan-tree .tree-object-header:hover { opacity: 0.9; }
+    .migration-plan-tree .tree-toggle { font-size: 0.8rem; color: var(--text-muted); transition: transform 0.2s; }
+    .migration-plan-tree .tree-object.expanded .tree-toggle { transform: rotate(90deg); }
+    .migration-plan-tree .tree-object-name { font-weight: 500; flex: 1; }
+    .migration-plan-tree .tree-object-name .mono { font-size: 0.85rem; color: var(--text-muted); }
+    .migration-plan-tree .tree-object-badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 500; }
+    .migration-plan-tree .tree-object-badge.fully { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .migration-plan-tree .tree-object-badge.partial { background: rgba(234,179,8,0.2); color: #eab308; }
+    .migration-plan-tree .tree-object-badge.create { background: rgba(234,179,8,0.2); color: #eab308; }
+    .migration-plan-tree .tree-object-badge.excluded { background: rgba(113,113,122,0.2); color: var(--text-muted); }
+    .migration-plan-tree .tree-object-badge.needs { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .migration-plan-tree .tree-fields { margin: 0.5rem 0 0 1.5rem; padding-left: 0.75rem; border-left: 1px solid var(--border); display: none; }
+    .migration-plan-tree .tree-object.expanded .tree-fields { display: block; }
+    .migration-plan-tree .tree-field { padding: 0.25rem 0; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .migration-plan-tree .tree-field .field-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+    .migration-plan-tree .tree-field .field-badge { font-size: 0.7rem; padding: 0.15rem 0.4rem; border-radius: 3px; }
+    .migration-plan-tree .tree-field .field-badge.mapped { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .migration-plan-tree .tree-field .field-badge.create { background: rgba(234,179,8,0.2); color: #eab308; }
+    .migration-plan-tree .tree-field .field-badge.excluded { background: rgba(113,113,122,0.2); color: var(--text-muted); }
+    .migration-plan-tree .tree-field .field-badge.needs { background: rgba(239,68,68,0.2); color: #ef4444; }
     .stepper-step.warning .stepper-dot { background: #eab308; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4); }
     .map-header {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 1rem;
       margin-bottom: 1.5rem;
       flex-wrap: wrap;
+    }
+    .map-header-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-shrink: 0;
     }
     .map-header h2 { margin: 0; font-size: 1.5rem; color: #fff; }
     .map-header .subtitle { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
@@ -1292,7 +1337,7 @@
           <h2>Object &amp; Field Mapping</h2>
           <p class="subtitle">Map source objects to target objects, then configure field mappings.</p>
         </div>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
+        <div class="map-header-actions">
           <button type="button" class="btn btn-ghost migration-plan-trigger" id="migrationPlanTriggerHeader">Migration Plan</button>
           <button class="btn btn-primary" id="continueToCustomizations" title="">Continue to Customizations</button>
         </div>
@@ -2414,105 +2459,88 @@
       if (modal) { modal.style.display = 'flex'; modal.setAttribute('aria-hidden', 'false'); }
     }
 
+    function getObjectPlanStatus(om) {
+      if (om.objectAction === 'exclude') return { key: 'excluded', label: 'Excluded', badge: 'excluded' };
+      if (om.objectAction === 'create') return { key: 'create', label: 'Create as new', badge: 'create' };
+      if (!om.target) return { key: 'needs', label: 'Needs mapping', badge: 'needs' };
+      const fms = om.fieldMappings || [];
+      const counts = { mapped: 0, create: 0, excluded: 0, needs: 0 };
+      fms.forEach((fm) => {
+        const fs = getFieldStatus(fm);
+        if (fs.class === 'mapped') counts.mapped++;
+        else if (fs.class === 'create') counts.create++;
+        else if (fs.class === 'excluded') counts.excluded++;
+        else counts.needs++;
+      });
+      if (counts.needs > 0) return { key: 'needs', label: 'Needs mapping', badge: 'needs' };
+      if (counts.create > 0) return { key: 'partial', label: 'Partially mapped', badge: 'partial' };
+      return { key: 'fully', label: 'Fully mapped', badge: 'fully' };
+    }
+
     function renderMigrationPlan() {
       const el = document.getElementById('migrationPlanContent');
       if (!el) return;
 
-      const objectsCreate = state.objectMappings.filter((om) => om.objectAction === 'create');
-      const objectsExcluded = state.objectMappings.filter((om) => om.objectAction === 'exclude');
-      const objectsMapped = state.objectMappings.filter((om) => om.objectAction === 'map' && om.target);
-
-      let fieldsMappedCount = 0;
-      const nsReplacements = new Map();
-      const fieldsToCreate = [];
-      let fieldsExcludedCount = 0;
-
-      objectsMapped.forEach((om) => {
-        (om.fieldMappings || []).forEach((fm) => {
-          const fs = getFieldStatus(fm);
-          if (fs.class === 'mapped') {
-            fieldsMappedCount++;
-            const srcNs = (fm.source?.apiName || '').split('__')[0];
-            const tgtNs = (fm.target?.apiName || '').split('__')[0];
-            if (srcNs && tgtNs) {
-              const key = `${srcNs}__* → ${tgtNs}__*`;
-              nsReplacements.set(key, (nsReplacements.get(key) || 0) + 1);
-            }
-          } else if (fs.class === 'create') {
-            fieldsToCreate.push({ object: om.target?.label || om.target?.apiName, field: fm.source?.apiName });
-          } else if (fs.class === 'excluded') fieldsExcludedCount++;
-        });
+      const byCategory = { fully: [], partial: [], create: [], excluded: [], needs: [] };
+      state.objectMappings.forEach((om) => {
+        const status = getObjectPlanStatus(om);
+        const cat = status.key === 'excluded' ? 'excluded' : status.key === 'create' ? 'create' : status.key === 'needs' ? 'needs' : status.key === 'partial' ? 'partial' : 'fully';
+        byCategory[cat].push({ om, status });
       });
 
-      objectsExcluded.forEach((om) => {
-        fieldsExcludedCount += (om.fieldMappings || []).length;
-      });
+      const categoryDefs = [
+        ['fully', 'fully-mapped', 'Fully mapped', 'Object and all fields exist in both orgs. Will migrate with namespace replacement only.'],
+        ['partial', 'partially-mapped', 'Partially mapped', 'Object exists in both orgs; some fields will be created.'],
+        ['create', 'create-new', 'Create as new', 'Object does not exist in target. Object and all fields will be created.'],
+        ['excluded', 'excluded', 'Excluded', 'Excluded from migration.'],
+        ['needs', 'needs-attention', 'Needs attention', 'Requires mapping before continuing.'],
+      ];
 
-      const needs = computeNeedsAttention();
-
-      const nsSummary = [...nsReplacements.entries()].map(([k, n]) => `${k} (${n} fields)`).join(', ');
-
-      let html = '';
-
-      // a. Migrated as is — direct match for object/fields
-      if (fieldsMappedCount > 0) {
+      let html = '<div class="migration-plan-tree">';
+      categoryDefs.forEach(([key, cssClass, title, desc]) => {
+        const items = byCategory[key] || [];
+        if (items.length === 0) return;
         html += `
-          <div class="migration-plan-section field-mappings">
-            <h4>Migrated as is</h4>
-            <p style="margin:0;font-weight:500;">Direct matches found for objects and fields. These will be migrated with namespace replacement only.</p>
-            <p style="margin:0.5rem 0 0;">${fieldsMappedCount} fields across ${objectsMapped.length} objects.</p>
-            ${nsSummary ? `<p style="margin:0.5rem 0 0;color:var(--text-muted);font-size:0.85rem;">${escapeHtml(nsSummary)}</p>` : ''}
-          </div>
+          <div class="tree-category ${cssClass}">
+            <div class="tree-category-title">${escapeHtml(title)} (${items.length})</div>
+            <p style="margin:0 0 0.5rem;font-size:0.85rem;color:var(--text-muted);">${escapeHtml(desc)}</p>
         `;
-      }
-
-      // b. Additional fields to create — object found, extra fields to add
-      if (fieldsToCreate.length > 0) {
-        const byObj = {};
-        fieldsToCreate.forEach(({ object, field }) => {
-          if (!byObj[object]) byObj[object] = [];
-          byObj[object].push(field);
+        items.forEach(({ om, status }) => {
+          const src = om.source;
+          const tgt = om.target;
+          const srcLabel = src?.label || src?.apiName || '';
+          const srcApi = src?.apiName || '';
+          const tgtLabel = tgt ? (tgt.label || tgt.apiName) : '—';
+          const fms = om.fieldMappings || [];
+          const fieldRows = fms.map((fm) => {
+            const fs = getFieldStatus(fm);
+            const fname = fm.source?.apiName || '';
+            return `<div class="tree-field"><span class="field-name mono">${escapeHtml(fname)}</span><span class="field-badge ${fs.class}">${escapeHtml(fs.label)}</span></div>`;
+          }).join('');
+          const expandable = fms.length > 0;
+          const expanded = expandable && status.key !== 'fully';
+          html += `
+            <div class="tree-object obj-${status.badge} ${expandable ? 'expandable' : ''} ${expanded ? 'expanded' : ''}" data-expandable="${expandable}">
+              <div class="tree-object-header">
+                ${expandable ? '<span class="tree-toggle">▶</span>' : '<span class="tree-toggle" style="visibility:hidden;">▶</span>'}
+                <span class="tree-object-name">${escapeHtml(srcLabel)} <span class="mono">(${escapeHtml(srcApi)})</span> → ${escapeHtml(tgtLabel)}</span>
+                <span class="tree-object-badge ${status.badge}">${escapeHtml(status.label)}</span>
+              </div>
+              ${expandable ? `<div class="tree-fields">${fieldRows}</div>` : ''}
+            </div>
+          `;
         });
-        html += `
-          <div class="migration-plan-section fields-create">
-            <h4>Additional fields to create</h4>
-            <p style="margin:0;font-weight:500;">Target object exists; these custom fields will be created on it.</p>
-            <p style="margin:0.5rem 0 0;">${fieldsToCreate.length} fields on existing objects:</p>
-            <ul>${Object.entries(byObj).map(([obj, fields]) => `<li><span class="mono">${escapeHtml(obj)}</span>: ${fields.map((f) => escapeHtml(f)).join(', ')}</li>`).join('')}</ul>
-          </div>
-        `;
-      }
-
-      // c. Created from scratch — new objects and all their fields
-      if (objectsCreate.length > 0) {
-        html += `
-          <div class="migration-plan-section objects-create">
-            <h4>Created from scratch</h4>
-            <p style="margin:0;font-weight:500;">New objects and all their fields will be created in the target org.</p>
-            <ul>${objectsCreate.map((om) => `<li><span class="mono">${escapeHtml(om.source?.apiName)}</span> (${(om.fieldMappings || []).length} fields)</li>`).join('')}</ul>
-          </div>
-        `;
-      }
-
-      if (objectsExcluded.length > 0 || fieldsExcludedCount > 0) {
-        html += `
-          <div class="migration-plan-section excluded">
-            <h4>Excluded</h4>
-            <p style="margin:0;">${objectsExcluded.length} objects and ${fieldsExcludedCount} fields excluded from migration.</p>
-          </div>
-        `;
-      }
-
-      if (needs.total > 0) {
-        html += `
-          <div class="migration-plan-section needs-attention">
-            <h4>Needs Attention</h4>
-            <p style="margin:0;">${needs.objectsNeeds} objects and ${needs.fieldsNeeds} fields still need mapping. Resolve or exclude before continuing.</p>
-          </div>
-        `;
-      }
+        html += '</div>';
+      });
+      html += '</div>';
 
       el.innerHTML = html || '<p style="color:var(--text-muted);margin:0;">Complete object and field mappings to see the migration plan.</p>';
+
+      el.querySelectorAll('.tree-object[data-expandable="true"] .tree-object-header').forEach((header) => {
+        header.addEventListener('click', () => {
+          header.closest('.tree-object').classList.toggle('expanded');
+        });
+      });
     }
 
     function renderMapFieldsStep() {
