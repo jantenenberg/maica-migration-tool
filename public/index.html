@@ -388,11 +388,27 @@
       font-family: inherit;
       transition: background 0.15s;
     }
-    .begin-btn:hover {
+    .begin-btn:hover:not(:disabled) {
       background: var(--primary-hover);
     }
-    .begin-btn::after {
-      content: ' →';
+    .begin-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .begin-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .btn-outline:hover:not(:disabled) {
+      background: rgba(99, 102, 241, 0.15);
     }
 
     /* Toast */
@@ -811,6 +827,140 @@
       font-size: 1.5rem;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Source Explorer */
+    .source-explorer-view {
+      padding-top: 0.5rem;
+    }
+    .source-explorer-view #sourceExplorerBack {
+      margin-bottom: 1.5rem;
+    }
+    .explorer-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .explorer-tab {
+      padding: 0.6rem 1.25rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      font-weight: 500;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .explorer-tab:hover { color: var(--text); border-color: var(--text-muted); }
+    .explorer-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .explorer-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .explorer-stats .stat-item { color: var(--text-muted); }
+    .explorer-stats .stat-item strong { color: var(--text); font-family: 'JetBrains Mono', monospace; }
+    .explorer-filters {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .explorer-search {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.6rem 1rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+    }
+    .explorer-search::placeholder { color: var(--text-muted); }
+    .explorer-search:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .explorer-filter-btns {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .explorer-filter-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-family: inherit;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .explorer-filter-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .explorer-filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .explorer-loading, .explorer-error {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+    .explorer-spinner {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 1rem;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .explorer-error p { margin-bottom: 1rem; }
+    .explorer-pkg-maicacare { background: rgba(99, 102, 241, 0.25); color: #a5b4fc; }
+    .explorer-pkg-maicabilling { background: rgba(236, 72, 153, 0.25); color: #f9a8d4; }
+    .explorer-pkg-unmanaged { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .explorer-obj-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .explorer-obj-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      flex-wrap: wrap;
+    }
+    .explorer-obj-card-header:hover { background: rgba(255,255,255,0.02); }
+    .explorer-obj-card.expanded .explorer-obj-card-header { border-bottom: 1px solid var(--border); }
+    .explorer-obj-expand {
+      width: 20px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .explorer-obj-card.expanded .explorer-obj-expand { transform: rotate(90deg); }
+    .explorer-obj-name { font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: #a5b4fc; }
+    .explorer-obj-label { font-size: 0.9rem; color: var(--text-muted); margin-left: 0.5rem; }
+    .explorer-obj-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-left: auto; }
+    .explorer-obj-card-body { display: none; padding: 1rem 1.25rem; }
+    .explorer-obj-card.expanded .explorer-obj-card-body { display: block; }
+    .explorer-cust-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .explorer-cust-card .cust-card-name { font-weight: 600; font-size: 1rem; margin-bottom: 0.35rem; }
+    .explorer-cust-card .cust-card-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -854,7 +1004,10 @@
     <div class="step-content active" id="step1Content" data-step="1">
       <div class="cards" id="cards"></div>
       <div class="begin-section" id="beginSection" style="display: none;">
-        <button class="begin-btn" id="beginBtn">Begin Schema Discovery</button>
+        <div class="begin-buttons">
+          <button class="btn btn-outline begin-btn" id="exploreSourceBtn">Explore Source Org →</button>
+          <button class="begin-btn" id="beginBtn" disabled>Begin Schema Discovery →</button>
+        </div>
       </div>
       <div class="setup-box" id="setupBox">
       <button class="setup-toggle" id="setupToggle">Setup: Create Connected App in Salesforce</button>
@@ -952,6 +1105,51 @@
       </div>
       <div class="review-deploy-card" id="reviewDeployCard"></div>
     </div>
+
+    <!-- Source Explorer (standalone view, not part of stepper) -->
+    <div class="source-explorer-view" id="sourceExplorerView" style="display: none;">
+      <button class="btn btn-ghost" id="sourceExplorerBack">← Back to Connect</button>
+      <div class="explorer-tabs">
+        <button class="explorer-tab active" data-tab="dataModel">Data Model</button>
+        <button class="explorer-tab" data-tab="customizations">Customizations</button>
+      </div>
+      <div class="explorer-tab-content" id="explorerDataModelTab">
+        <div class="explorer-stats" id="dataModelStats"></div>
+        <div class="explorer-filters">
+          <input type="text" class="explorer-search" id="dataModelSearch" placeholder="Search objects and fields..." />
+          <div class="explorer-filter-btns">
+            <button class="explorer-filter-btn active" data-filter="all">All</button>
+            <button class="explorer-filter-btn" data-filter="maicacare">MaicaCare only</button>
+            <button class="explorer-filter-btn" data-filter="maicabilling">MaicaBilling only</button>
+            <button class="explorer-filter-btn" data-filter="unmanaged">Unmanaged only</button>
+          </div>
+        </div>
+        <div class="explorer-loading" id="dataModelLoading" style="display: none;">
+          <div class="explorer-spinner"></div>
+          <p>Loading schema...</p>
+        </div>
+        <div class="explorer-error" id="dataModelError" style="display: none;">
+          <p id="dataModelErrorMsg"></p>
+          <button class="btn btn-primary" id="dataModelRetry">Retry</button>
+        </div>
+        <div class="explorer-content" id="dataModelContent"></div>
+      </div>
+      <div class="explorer-tab-content" id="explorerCustomizationsTab" style="display: none;">
+        <div class="explorer-stats" id="customizationsStats"></div>
+        <div class="explorer-filters">
+          <div class="explorer-filter-btns cust-category-tabs" id="explorerCustTabs"></div>
+        </div>
+        <div class="explorer-loading" id="customizationsLoading" style="display: none;">
+          <div class="explorer-spinner"></div>
+          <p>Loading customizations...</p>
+        </div>
+        <div class="explorer-error" id="customizationsError" style="display: none;">
+          <p id="customizationsErrorMsg"></p>
+          <button class="btn btn-primary" id="customizationsRetry">Retry</button>
+        </div>
+        <div class="explorer-content" id="customizationsContent"></div>
+      </div>
+    </div>
   </main>
 
   <div class="toast-container" id="toastContainer"></div>
@@ -961,6 +1159,7 @@
       source: null,
       target: null,
       currentStep: 1,
+      viewMode: 'main',
       sourceSchema: null,
       targetSchema: null,
       customizations: null,
@@ -970,6 +1169,12 @@
       selectedCustomizations: new Set(),
       customizationFilter: 'all',
       deployStatus: null,
+      explorerSchema: null,
+      explorerCustomizations: null,
+      explorerDataModelFilter: 'all',
+      explorerDataModelSearch: '',
+      explorerCustFilter: 'all',
+      explorerExpandedObjects: new Set(),
     };
 
     function getLoginUrl(env, customDomain) {
@@ -1121,8 +1326,277 @@
     function render() {
       renderHeaderStatus();
       renderCards();
-      const bothConnected = state.source?.connected && state.target?.connected;
-      document.getElementById('beginSection').style.display = bothConnected ? 'block' : 'none';
+      const sourceConnected = state.source?.connected;
+      const bothConnected = sourceConnected && state.target?.connected;
+      const beginSection = document.getElementById('beginSection');
+      beginSection.style.display = sourceConnected ? 'block' : 'none';
+      const beginBtn = document.getElementById('beginBtn');
+      if (beginBtn) beginBtn.disabled = !bothConnected;
+    }
+
+    function showSourceExplorer() {
+      state.viewMode = 'sourceExplorer';
+      document.querySelector('.stepper').style.display = 'none';
+      document.querySelectorAll('.step-content').forEach((c) => c.style.display = 'none');
+      document.getElementById('sourceExplorerView').style.display = 'block';
+      document.querySelector('.explorer-tab[data-tab="dataModel"]').classList.add('active');
+      document.querySelector('.explorer-tab[data-tab="customizations"]').classList.remove('active');
+      document.getElementById('explorerDataModelTab').style.display = 'block';
+      document.getElementById('explorerCustomizationsTab').style.display = 'none';
+      loadExplorerDataModel();
+      loadExplorerCustomizations();
+    }
+
+    function hideSourceExplorer() {
+      state.viewMode = 'main';
+      document.querySelector('.stepper').style.display = 'flex';
+      document.getElementById('sourceExplorerView').style.display = 'none';
+      document.querySelectorAll('.step-content').forEach((c) => {
+        c.style.display = c.dataset.step === '1' ? 'block' : 'none';
+      });
+      document.getElementById('step1Content').classList.add('active');
+      render();
+    }
+
+    function getExplorerPkgClass(pkg) {
+      if (!pkg) return 'explorer-pkg-unmanaged';
+      const p = (pkg || '').toLowerCase();
+      if (p.includes('maicacare')) return 'explorer-pkg-maicacare';
+      if (p.includes('maicabilling')) return 'explorer-pkg-maicabilling';
+      return 'explorer-pkg-unmanaged';
+    }
+
+    function getExplorerPkgLabel(pkg) {
+      if (!pkg) return 'Custom';
+      const p = (pkg || '').toLowerCase();
+      if (p.includes('maicacare')) return 'MaicaCare';
+      if (p.includes('maicabilling')) return 'MaicaBilling';
+      return pkg;
+    }
+
+    async function loadExplorerDataModel() {
+      const loading = document.getElementById('dataModelLoading');
+      const error = document.getElementById('dataModelError');
+      const content = document.getElementById('dataModelContent');
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      content.innerHTML = '';
+      try {
+        const res = await fetch('/api/source/schema', { credentials: 'include' });
+        if (!res.ok) {
+          const errText = await res.text();
+          let errMsg = errText;
+          try { const j = JSON.parse(errText); errMsg = j.error || errText; } catch {}
+          throw new Error(errMsg);
+        }
+        state.explorerSchema = await res.json();
+        loading.style.display = 'none';
+        renderExplorerDataModel();
+      } catch (err) {
+        loading.style.display = 'none';
+        error.style.display = 'block';
+        document.getElementById('dataModelErrorMsg').textContent = err.message || 'Failed to load schema';
+      }
+    }
+
+    function renderExplorerDataModel() {
+      const schema = state.explorerSchema;
+      const content = document.getElementById('dataModelContent');
+      const statsEl = document.getElementById('dataModelStats');
+      if (!schema?.objects) {
+        content.innerHTML = '<p style="color: var(--text-muted);">No schema data.</p>';
+        return;
+      }
+      const objects = schema.objects || [];
+      const search = (state.explorerDataModelSearch || '').toLowerCase();
+      const filter = state.explorerDataModelFilter || 'all';
+
+      let filtered = objects.filter((o) => {
+        const pkg = (o.package || '').toLowerCase();
+        if (filter === 'maicacare' && !pkg.includes('maicacare')) return false;
+        if (filter === 'maicabilling' && !pkg.includes('maicabilling')) return false;
+        if (filter === 'unmanaged' && pkg) return false;
+        if (search) {
+          const objMatch = (o.apiName || '').toLowerCase().includes(search) || (o.label || '').toLowerCase().includes(search);
+          const fieldMatch = (o.fields || []).some((f) =>
+            (f.apiName || '').toLowerCase().includes(search) || (f.label || '').toLowerCase().includes(search)
+          );
+          if (!objMatch && !fieldMatch) return false;
+        }
+        return true;
+      });
+
+      const totalFields = filtered.reduce((n, o) => n + (o.fields || []).length, 0);
+      const byPkg = { maicacare: 0, maicabilling: 0, unmanaged: 0 };
+      filtered.forEach((o) => {
+        const p = (o.package || '').toLowerCase();
+        if (p.includes('maicacare')) byPkg.maicacare++;
+        else if (p.includes('maicabilling')) byPkg.maicabilling++;
+        else byPkg.unmanaged++;
+      });
+
+      statsEl.innerHTML = `
+        <span class="stat-item">Total objects: <strong>${filtered.length}</strong></span>
+        <span class="stat-item">Total fields: <strong>${totalFields}</strong></span>
+        <span class="stat-item">MaicaCare: <strong>${byPkg.maicacare}</strong></span>
+        <span class="stat-item">MaicaBilling: <strong>${byPkg.maicabilling}</strong></span>
+        <span class="stat-item">Unmanaged: <strong>${byPkg.unmanaged}</strong></span>
+      `;
+
+      content.innerHTML = filtered.map((o, idx) => {
+        const fields = o.fields || [];
+        const fieldRows = fields
+          .filter((f) => {
+            if (!search) return true;
+            return (f.apiName || '').toLowerCase().includes(search) || (f.label || '').toLowerCase().includes(search);
+          })
+          .map((f) => `
+            <tr>
+              <td><span class="mono">${escapeHtml(f.apiName || '')}</span></td>
+              <td>${escapeHtml(f.label || '')}</td>
+              <td><span class="type-badge">${escapeHtml(f.type || '')}</span></td>
+              <td><span class="${getExplorerPkgClass(f.package)}" style="padding:0.2rem 0.5rem;font-size:0.75rem;border-radius:4px;">${escapeHtml(getExplorerPkgLabel(f.package))}</span></td>
+              <td>${f.required ? 'Yes' : 'No'}</td>
+            </tr>
+          `).join('');
+
+        const expanded = state.explorerExpandedObjects.has(o.apiName);
+        const pkgTag = getExplorerPkgLabel(o.package);
+        const pkgClass = getExplorerPkgClass(o.package);
+        return `
+          <div class="explorer-obj-card ${expanded ? 'expanded' : ''}" data-obj-name="${escapeHtml(o.apiName)}">
+            <div class="explorer-obj-card-header">
+              <span class="explorer-obj-expand">&#9654;</span>
+              <span class="explorer-obj-name">${escapeHtml(o.apiName)}</span>
+              <span class="explorer-obj-label">${escapeHtml(o.label || '')}</span>
+              <div class="explorer-obj-meta">
+                <span class="${pkgClass}" style="padding:0.2rem 0.5rem;font-size:0.75rem;border-radius:4px;">${escapeHtml(pkgTag)}</span>
+                <span style="font-size:0.85rem;color:var(--text-muted);">${fields.length} fields</span>
+              </div>
+            </div>
+            <div class="explorer-obj-card-body">
+              <table class="field-table">
+                <thead><tr><th>Field API Name</th><th>Label</th><th>Type</th><th>Package</th><th>Required</th></tr></thead>
+                <tbody>${fieldRows}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      content.querySelectorAll('.explorer-obj-card-header').forEach((h) => {
+        h.addEventListener('click', () => {
+          const card = h.closest('.explorer-obj-card');
+          const name = card.dataset.objName;
+          if (state.explorerExpandedObjects.has(name)) state.explorerExpandedObjects.delete(name);
+          else state.explorerExpandedObjects.add(name);
+          renderExplorerDataModel();
+        });
+      });
+    }
+
+    async function loadExplorerCustomizations() {
+      const loading = document.getElementById('customizationsLoading');
+      const error = document.getElementById('customizationsError');
+      const content = document.getElementById('customizationsContent');
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      content.innerHTML = '';
+      try {
+        const res = await fetch('/api/source/customizations', { credentials: 'include' });
+        if (!res.ok) {
+          const errText = await res.text();
+          let errMsg = errText;
+          try { const j = JSON.parse(errText); errMsg = j.error || errText; } catch {}
+          throw new Error(errMsg);
+        }
+        state.explorerCustomizations = await res.json();
+        loading.style.display = 'none';
+        renderExplorerCustomizations();
+      } catch (err) {
+        loading.style.display = 'none';
+        error.style.display = 'block';
+        document.getElementById('customizationsErrorMsg').textContent = err.message || 'Failed to load customizations';
+      }
+    }
+
+    function renderExplorerCustomizations() {
+      const data = state.explorerCustomizations;
+      const content = document.getElementById('customizationsContent');
+      const statsEl = document.getElementById('customizationsStats');
+      const tabsEl = document.getElementById('explorerCustTabs');
+      if (!data?.customizations) {
+        content.innerHTML = '<p style="color: var(--text-muted);">No customizations.</p>';
+        return;
+      }
+      const cust = data.customizations || [];
+      const filter = state.explorerCustFilter || 'all';
+
+      const byCategory = { all: cust.length, apex: 0, lwc: 0, flow: 0, validation: 0, report: 0 };
+      cust.forEach((c) => {
+        const cat = (c.category || '').toLowerCase();
+        if (cat === 'apex') byCategory.apex++;
+        else if (cat === 'lwc') byCategory.lwc++;
+        else if (cat === 'flow') byCategory.flow++;
+        else if (cat === 'validation') byCategory.validation++;
+        else if (cat === 'report') byCategory.report++;
+      });
+
+      statsEl.innerHTML = `
+        <span class="stat-item">Total components: <strong>${cust.length}</strong></span>
+        <span class="stat-item">Apex: <strong>${byCategory.apex}</strong></span>
+        <span class="stat-item">LWC: <strong>${byCategory.lwc}</strong></span>
+        <span class="stat-item">Flow: <strong>${byCategory.flow}</strong></span>
+        <span class="stat-item">Validation: <strong>${byCategory.validation}</strong></span>
+        <span class="stat-item">Report: <strong>${byCategory.report}</strong></span>
+      `;
+
+      tabsEl.innerHTML = [
+        ['all', 'All', byCategory.all],
+        ['apex', 'Apex', byCategory.apex],
+        ['lwc', 'LWC', byCategory.lwc],
+        ['flow', 'Flow', byCategory.flow],
+        ['validation', 'Validation', byCategory.validation],
+        ['report', 'Report', byCategory.report],
+      ].map(([key, label, n]) => `<button class="explorer-filter-btn ${filter === key ? 'active' : ''}" data-cust-filter="${key}">${label} (${n})</button>`).join('');
+
+      tabsEl.querySelectorAll('.explorer-filter-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.explorerCustFilter = btn.dataset.custFilter;
+          renderExplorerCustomizations();
+        });
+      });
+
+      const filtered = cust.filter((c) => {
+        const cat = (c.category || '').toLowerCase();
+        if (filter === 'all') return true;
+        if (filter === 'apex') return cat === 'apex';
+        if (filter === 'lwc') return cat === 'lwc';
+        if (filter === 'flow') return cat === 'flow';
+        if (filter === 'validation') return cat === 'validation';
+        if (filter === 'report') return cat === 'report';
+        return true;
+      });
+
+      content.innerHTML = filtered.map((c) => {
+        const refs = getReferencesForComponent(c);
+        const refTags = refs
+          ? refs.map((r) => `<span class="cust-ref-tag in-source">${escapeHtml(r)}</span>`).join('')
+          : '';
+
+        const displayName = c.label || c.name || c.developerName || c.id;
+        return `
+          <div class="explorer-cust-card">
+            <div class="cust-card-name">${escapeHtml(displayName)}</div>
+            <div class="cust-card-meta">
+              <span class="cust-type-badge">${escapeHtml(c.type || c.category || '')}</span>
+              ${c.lineCount != null ? `<span>${c.lineCount} lines</span>` : ''}
+              <span>${formatDate(c.lastModified)}</span>
+            </div>
+            ${refTags ? `<div class="cust-refs-row">${refTags}</div>` : ''}
+          </div>
+        `;
+      }).join('');
     }
 
     function escapeHtml(str) {
@@ -1174,8 +1648,35 @@
     });
 
     document.getElementById('beginBtn').addEventListener('click', startDiscovery);
+    document.getElementById('exploreSourceBtn').addEventListener('click', showSourceExplorer);
+    document.getElementById('sourceExplorerBack').addEventListener('click', hideSourceExplorer);
 
     document.getElementById('retryBtn').addEventListener('click', startDiscovery);
+
+    document.querySelectorAll('.explorer-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const t = tab.dataset.tab;
+        document.querySelectorAll('.explorer-tab').forEach((t2) => t2.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('explorerDataModelTab').style.display = t === 'dataModel' ? 'block' : 'none';
+        document.getElementById('explorerCustomizationsTab').style.display = t === 'customizations' ? 'block' : 'none';
+      });
+    });
+
+    document.getElementById('dataModelSearch').addEventListener('input', (e) => {
+      state.explorerDataModelSearch = e.target.value;
+      renderExplorerDataModel();
+    });
+    document.querySelectorAll('.explorer-filter-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.explorer-filter-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.explorerDataModelFilter = btn.dataset.filter;
+        renderExplorerDataModel();
+      });
+    });
+    document.getElementById('dataModelRetry').addEventListener('click', () => loadExplorerDataModel());
+    document.getElementById('customizationsRetry').addEventListener('click', () => loadExplorerCustomizations());
 
     document.getElementById('continueToCustomizations')?.addEventListener('click', () => goToStep(4));
     document.getElementById('continueToReview')?.addEventListener('click', () => goToStep(5));

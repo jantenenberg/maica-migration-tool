@@ -83,7 +83,7 @@ router.get('/:orgType/login', validateOrgType, (req, res) => {
 
   const oauth2 = getOAuth2Config(orgType, loginUrlOverride);
   req.session.pendingOrgType = orgType;
-  if (loginUrlOverride) req.session.loginUrlOverride = loginUrlOverride;
+  req.session.oauthLoginUrl = oauth2.loginUrl;
 
   const { codeVerifier, codeChallenge } = generatePKCE();
   req.session.codeVerifier = codeVerifier;
@@ -113,19 +113,30 @@ router.get('/:orgType/callback', validateOrgType, async (req, res) => {
   }
 
   try {
-    const loginUrlOverride = req.session?.loginUrlOverride;
-    const oauth2 = getOAuth2Config(orgType, loginUrlOverride);
-    delete req.session.loginUrlOverride;
+    const oauth2 = getOAuth2Config(orgType);
+    const loginUrl = req.session?.oauthLoginUrl || oauth2.loginUrl;
+    delete req.session.oauthLoginUrl;
+    delete req.session.codeVerifier;
 
-    const tokenUrl = `${oauth2.loginUrl}/services/oauth2/token`;
-    const body = new URLSearchParams({
+    const tokenUrl = `${loginUrl}/services/oauth2/token`;
+    const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
       client_id: oauth2.clientId,
       client_secret: oauth2.clientSecret,
       redirect_uri: oauth2.redirectUri,
       code_verifier: codeVerifier,
-    }).toString();
+    });
+    const body = params.toString();
+
+    console.log('[OAuth] Token exchange:', {
+      tokenUrl,
+      grant_type: 'authorization_code',
+      code: code ? '[present]' : '[missing]',
+      client_id: oauth2.clientId,
+      redirect_uri: oauth2.redirectUri,
+      code_verifier: codeVerifier ? '[present]' : '[missing]',
+    });
 
     const tokenRes = await fetch(tokenUrl, {
       method: 'POST',
@@ -134,19 +145,24 @@ router.get('/:orgType/callback', validateOrgType, async (req, res) => {
     });
 
     const tokenData = await tokenRes.json();
+    console.log('[OAuth] Token response:', {
+      status: tokenRes.status,
+      ok: tokenRes.ok,
+      error: tokenData.error,
+      error_description: tokenData.error_description,
+      has_access_token: !!tokenData.access_token,
+      has_instance_url: !!tokenData.instance_url,
+    });
+
     if (!tokenRes.ok) {
       const errMsg = tokenData.error_description || tokenData.error || 'Token exchange failed';
       throw new Error(errMsg);
     }
 
     const conn = new jsforce.Connection({
-      oauth2,
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
       instanceUrl: tokenData.instance_url,
+      accessToken: tokenData.access_token,
     });
-
-    delete req.session.codeVerifier;
 
     const [identity, orgResult, packagesResult] = await Promise.all([
       conn.identity(),
@@ -174,9 +190,9 @@ router.get('/:orgType/callback', validateOrgType, async (req, res) => {
     }));
 
     req.session[orgType] = {
-      accessToken: conn.accessToken,
-      refreshToken: conn.refreshToken,
-      instanceUrl: conn.instanceUrl,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      instanceUrl: tokenData.instance_url,
       userId: identity.user_id,
       orgId: identity.organization_id,
       username: identity.username,
