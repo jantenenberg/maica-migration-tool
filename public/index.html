@@ -731,7 +731,7 @@
     .stepper-step.warning .stepper-dot { background: #eab308; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4); }
     .map-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 1rem;
       margin-bottom: 1.5rem;
@@ -740,11 +740,8 @@
     .map-header-actions {
       display: flex;
       gap: 0.5rem;
-      align-items: stretch;
+      align-items: center;
       flex-shrink: 0;
-    }
-    .map-header-actions .btn {
-      min-height: 2.75rem;
     }
     .map-header h2 { margin: 0; font-size: 1.5rem; color: #fff; }
     .map-header .subtitle { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
@@ -2096,19 +2093,6 @@
       const modal = document.getElementById('migrationPlanModal');
       if (modal) { modal.style.display = 'none'; modal.setAttribute('aria-hidden', 'true'); }
     }
-    document.getElementById('migrationPlanModal')?.addEventListener('click', (e) => {
-      if (e.target.id === 'migrationPlanModal') {
-        closeMigrationPlanModal();
-      } else if (e.target.closest?.('#migrationPlanModalClose') || e.target.closest?.('[data-close-migration-modal]')) {
-        e.preventDefault();
-        e.stopPropagation();
-        closeMigrationPlanModal();
-      }
-    });
-    document.getElementById('migrationPlanDownload')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      downloadMigrationPlan();
-    });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const modal = document.getElementById('migrationPlanModal');
@@ -2508,14 +2492,21 @@
     }
 
     function downloadMigrationPlan() {
-      const text = getMigrationPlanText();
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `migration-plan-${new Date().toISOString().slice(0, 10)}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
+      try {
+        const text = getMigrationPlanText();
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `migration-plan-${new Date().toISOString().slice(0, 10)}.txt`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Download failed:', err);
+      }
     }
 
     function getObjectPlanStatus(om) {
@@ -3220,6 +3211,13 @@
       const base = window.location.origin;
       document.getElementById('sourceCallbackUrl').textContent = base + '/oauth/source/callback';
       document.getElementById('targetCallbackUrl').textContent = base + '/oauth/target/callback';
+
+      document.getElementById('migrationPlanModalClose')?.addEventListener('click', () => closeMigrationPlanModal());
+      document.getElementById('migrationPlanModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'migrationPlanModal') closeMigrationPlanModal();
+      });
+      document.querySelector('#migrationPlanModal .modal-dialog')?.addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('migrationPlanDownload')?.addEventListener('click', () => downloadMigrationPlan());
     }
 
     init();
